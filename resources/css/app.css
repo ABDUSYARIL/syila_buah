@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #4CAF50;
+  --color-primary-hover: #43A047;
+  --color-primary-active: #388E3C;
+  --color-primary-foreground: #ffffff;
+  
+  --color-secondary: #E8F5E9;
+  --color-secondary-foreground: #2D3748;
+  
+  --color-accent: #FF9800;
+  --color-accent-hover: #F57C00;
+  --color-accent-active: #E65100;
+  --color-accent-foreground: #ffffff;
+  
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #ffffff;
+  
+  --color-gray-dark: #2D3748;
+  --color-gray-muted: #718096;
+  --color-gray-light: #E2E8F0;
+  --color-bg-light: #F8F9FA;
+  
+  --color-green-light: #E8F5E9;
+  --color-green-dark: #1B5E20;
+
+  --radius-xl: 1rem;      /* 16px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-md: 0.5rem;
+
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.04);
+  --shadow-soft-hover: 0 20px 50px rgba(76, 175, 80, 0.12);
+  --shadow-3d: 0 15px 35px rgba(0, 0, 0, 0.05), 0 5px 15px rgba(0, 0, 0, 0.02);
+  --shadow-3d-hover: 0 20px 40px rgba(76, 175, 80, 0.14), 0 10px 20px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-light text-gray-dark font-sans antialiased;
+  }
+  
+  /* Material symbols icon baseline alignment */
+  .material-symbols-rounded {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+  }
+}
