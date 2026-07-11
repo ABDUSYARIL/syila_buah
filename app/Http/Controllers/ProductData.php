@@ -237,6 +237,24 @@ class ProductData
         ['month' => 'Jul', 'revenue' => 24500000, 'orders' => 178],
     ];
 
+    public static $dailySalesData = [
+        ['month' => 'Sen', 'revenue' => 2200000, 'orders' => 24],
+        ['month' => 'Sel', 'revenue' => 1850000, 'orders' => 19],
+        ['month' => 'Rab', 'revenue' => 2400000, 'orders' => 27],
+        ['month' => 'Kam', 'revenue' => 2150000, 'orders' => 21],
+        ['month' => 'Jum', 'revenue' => 2800000, 'orders' => 31],
+        ['month' => 'Sab', 'revenue' => 3200000, 'orders' => 36],
+        ['month' => 'Min', 'revenue' => 2700000, 'orders' => 29],
+    ];
+
+    public static $yearlySalesData = [
+        ['month' => '2020', 'revenue' => 143000000, 'orders' => 1120],
+        ['month' => '2021', 'revenue' => 157000000, 'orders' => 1290],
+        ['month' => '2022', 'revenue' => 169000000, 'orders' => 1365],
+        ['month' => '2023', 'revenue' => 184000000, 'orders' => 1480],
+        ['month' => '2024', 'revenue' => 198000000, 'orders' => 1545],
+    ];
+
     public static $topProducts = [
         ['name' => 'Mangga Harum Manis', 'sold' => 312, 'revenue' => 8736000],
         ['name' => 'Stroberi', 'sold' => 278, 'revenue' => 12510000],
@@ -246,6 +264,24 @@ class ProductData
     ];
 
     public static $CHART_COLORS = ['#4CAF50', '#FF9800', '#2196F3', '#9C27B0', '#F44336'];
+
+    public static function getSalesData(string $period = 'Bulanan')
+    {
+        if ($period === 'Harian') {
+            return self::$dailySalesData;
+        }
+
+        if ($period === 'Tahunan') {
+            return self::$yearlySalesData;
+        }
+
+        return self::$salesData;
+    }
+
+    public static function getTopProducts(string $period = 'Bulanan')
+    {
+        return self::$topProducts;
+    }
 
     public static function rp($n)
     {

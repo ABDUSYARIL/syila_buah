@@ -49,10 +49,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/stock/adjust', [AdminController::class, 'adjustStock'])->name('stock.adjust');
     
     Route::get('/orders', [AdminController::class, 'orders'])->name('orders');
+    Route::post('/orders/{invoice}/accept', [AdminController::class, 'acceptOrder'])->name('orders.accept');
+    Route::post('/orders/{invoice}/reject', [AdminController::class, 'rejectOrder'])->name('orders.reject');
+    Route::post('/orders/{invoice}/ship', [AdminController::class, 'shipOrder'])->name('orders.ship');
+    Route::post('/orders/{invoice}/complete', [AdminController::class, 'completeOrder'])->name('orders.complete');
     Route::get('/admins', [AdminController::class, 'admins'])->name('admins');
+    Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admins.store');
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
     
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
     Route::get('/change-password', [AdminController::class, 'changePassword'])->name('change-password');
     Route::post('/change-password', [AdminController::class, 'updatePassword'])->name('change-password.update');
+    Route::post('/profile/update', [AdminController::class, 'updateProfile'])->name('profile.update');
 });

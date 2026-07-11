@@ -25,7 +25,7 @@
         this.editDescription = '';
         this.editStock = 0;
         this.editImageUrl = '';
-        this.imagePreview = '';
+        this.imagePreview = ''; // DIPERBAIKI: Untuk tambah produk, pratinjau gambar dikosongkan
         this.modalOpen = true;
     },
     openEditModal(p) {
@@ -38,7 +38,12 @@
         this.editDescription = p.description || '';
         this.editStock = p.stock;
         this.editImageUrl = p.image || '';
-        this.imagePreview = p.image ? (p.image.startsWith('http') || p.image.startsWith('/') ? p.image : 'https://images.unsplash.com/photo-' + p.image + '?w=150&h=150&fit=crop&auto=format') : '';
+        
+        // DIPERBAIKI: Mengecek apakah path menggunakan /storage/, URL http, atau id unik Unsplash
+        this.imagePreview = p.image ? 
+            (p.image.startsWith('http') || p.image.startsWith('/') ? p.image : 'https://images.unsplash.com/photo-' + p.image + '?w=150&h=150&fit=crop&auto=format') 
+            : '';
+            
         this.modalOpen = true;
     }
 }">
@@ -169,6 +174,7 @@
         x-show="modalOpen" 
         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/50"
         x-transition
+        x-cloak
     >
         <div 
             @click.away="modalOpen = false" 

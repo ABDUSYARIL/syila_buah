@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\StockHistory;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
@@ -61,7 +62,7 @@ class CustomerController extends Controller
 
     public function home(Request $request)
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('home')]);
             return redirect()->route('login');
         }
@@ -106,7 +107,7 @@ class CustomerController extends Controller
 
     public function cart()
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('cart')]);
             return redirect()->route('login');
         }
@@ -118,7 +119,7 @@ class CustomerController extends Controller
     public function addToCart(Request $request)
     {
         // Enforce login for Add to Cart or Buy Now
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => url()->previous()]);
             return redirect()->route('login');
         }
@@ -154,7 +155,7 @@ class CustomerController extends Controller
 
     public function updateCart(Request $request)
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('cart')]);
             return redirect()->route('login');
         }
@@ -179,7 +180,7 @@ class CustomerController extends Controller
 
     public function removeFromCart($id)
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('cart')]);
             return redirect()->route('login');
         }
@@ -195,7 +196,7 @@ class CustomerController extends Controller
     public function checkout()
     {
         // Enforce login for Checkout
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('checkout')]);
             return redirect()->route('login');
         }
@@ -219,7 +220,7 @@ class CustomerController extends Controller
 
     public function payment(Request $request)
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('payment')]);
             return redirect()->route('login');
         }
@@ -311,9 +312,16 @@ class CustomerController extends Controller
 
     public function submitPayment(Request $request)
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             return redirect()->route('login');
         }
+
+        $request->validate([
+            'order_id' => 'required|integer|exists:orders,id',
+            'proof_file' => 'required|image|mimes:jpg,jpeg,png|max:4096',
+        ], [
+            'proof_file.required' => 'Bukti pembayaran wajib diunggah.',
+        ]);
 
         $orderId = $request->input('order_id');
         $order = Order::findOrFail($orderId);
@@ -322,18 +330,21 @@ class CustomerController extends Controller
         $order->status = 'Menunggu Verifikasi';
         $order->save();
 
+        $proofPath = $request->file('proof_file')->store('payments', 'public');
+
         // Update Payment entry with proof
         $payment = Payment::where('order_id', $order->id)->first();
         if ($payment) {
             $payment->update([
-                'proof_of_payment' => 'proof_' . $order->invoice_no . '.jpg',
+                'proof_of_payment' => $proofPath,
                 'payment_date' => Carbon::now(),
+                'payment_status' => 'Menunggu',
             ]);
         } else {
             Payment::create([
                 'order_id' => $order->id,
                 'method' => $request->input('payment_method', 'Transfer Bank'),
-                'proof_of_payment' => 'proof_' . $order->invoice_no . '.jpg',
+                'proof_of_payment' => $proofPath,
                 'payment_status' => 'Menunggu',
                 'payment_date' => Carbon::now(),
             ]);
@@ -360,13 +371,41 @@ class CustomerController extends Controller
 
     public function history()
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('history')]);
             return redirect()->route('login');
         }
 
         $userId = \App\Models\User::where('role', 'pelanggan')->first()->id ?? 2;
-        $orders = Order::where('user_id', $userId)->orderBy('created_at', 'desc')->get();
+
+        $orders = Order::with(['orderItems.product', 'payment'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($o) {
+                return [
+                    'db_id' => $o->id,
+                    'id' => $o->invoice_no,
+                    'date' => $o->created_at->format('d M Y H:i'),
+                    'total' => $o->total,
+                    'status' => $o->status,
+                    'items' => $o->orderItems->map(function($it) {
+                        return [
+                            'name' => $it->product->name ?? 'Produk',
+                            'qty' => $it->qty,
+                            'unit' => $it->product->unit ?? '',
+                            'price' => $it->price,
+                            'img' => $it->product->image ?? null
+                        ];
+                    })->toArray(),
+                    'payment' => $o->payment ? [
+                        'method' => $o->payment->method,
+                        'status' => $o->payment->payment_status,
+                        'proof' => $o->payment->proof_of_payment,
+                        'date' => $o->payment->payment_date ? $o->payment->payment_date->format('d M Y H:i') : null
+                    ] : null
+                ];
+            });
 
         return view('customer.history', compact('orders'));
     }
@@ -374,7 +413,7 @@ class CustomerController extends Controller
     public function profile()
     {
         // Enforce login for profile page
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('profile')]);
             return redirect()->route('login');
         }
@@ -384,7 +423,7 @@ class CustomerController extends Controller
 
     public function editProfile()
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('profile.edit')]);
             return redirect()->route('login');
         }
@@ -393,12 +432,39 @@ class CustomerController extends Controller
 
     public function updateProfile(Request $request)
     {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:30',
+            'address' => 'nullable|string|max:1000',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+        $user->phone = $data['phone'] ?? $user->phone;
+        $user->address = $data['address'] ?? $user->address;
+
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $user->avatar = $path;
+        }
+
+        $user->save();
+
+        session(['username' => $user->name]);
+
         return redirect()->route('profile')->with('success', 'Profil Anda berhasil diperbarui!');
     }
 
     public function changePassword()
     {
-        if (session('role') !== 'customer') {
+        if (session('role') !== 'pelanggan') {
             session(['url.intended' => route('profile.change-password')]);
             return redirect()->route('login');
         }

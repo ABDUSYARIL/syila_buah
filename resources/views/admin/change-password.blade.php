@@ -13,11 +13,21 @@
     <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
         <form action="{{ route('admin.change-password.update') }}" method="POST" class="space-y-4">
             @csrf
+
+            @if ($errors->any())
+                <div class="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+                    <ul class="list-disc list-inside space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             
             @foreach([
-                ['key' => 'old', 'label' => 'Password Lama'],
-                ['key' => 'new', 'label' => 'Password Baru'],
-                ['key' => 'confirm', 'label' => 'Konfirmasi Password Baru']
+                ['key' => 'current', 'label' => 'Password Lama', 'name' => 'current_password'],
+                ['key' => 'new', 'label' => 'Password Baru', 'name' => 'password'],
+                ['key' => 'confirm', 'label' => 'Konfirmasi Password Baru', 'name' => 'password_confirmation']
             ] as $field)
                 <!-- Field Input -->
                 <div class="flex flex-col gap-1.5">
@@ -28,7 +38,7 @@
                         </div>
                         <input
                             :type="show.{{ $field['key'] }} ? 'text' : 'password'"
-                            name="{{ $field['key'] }}_password"
+                            name="{{ $field['name'] }}"
                             required
                             placeholder="••••••••"
                             class="w-full rounded-xl border border-gray-light bg-white px-4 py-3 text-sm text-gray-dark placeholder-gray-muted focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all pl-10 pr-12"

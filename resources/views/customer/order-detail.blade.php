@@ -5,7 +5,7 @@
 @section('content')
 <div class="max-w-4xl mx-auto px-6 py-8">
     <!-- Header Navigation -->
-    <div class="mb-8">
+        <div class="mb-8">
         <a href="{{ route('history') }}" class="inline-flex items-center gap-1.5 text-sm text-gray-muted hover:text-primary transition-colors">
             <span class="material-symbols-rounded text-base">arrow_back</span> Kembali ke Riwayat Pesanan
         </a>
@@ -17,11 +17,11 @@
         <div class="flex flex-col sm:flex-row justify-between border-b border-bg-light pb-4 mb-4 gap-2">
             <div>
                 <p class="text-xs text-gray-muted">Nomor Invoice</p>
-                <p class="font-mono font-bold text-gray-dark text-base mt-0.5">SB-240703-006</p>
+                <p class="font-mono font-bold text-gray-dark text-base mt-0.5">{{ $order->invoice_no }}</p>
             </div>
             <div>
                 <p class="text-xs text-gray-muted sm:text-right">Tanggal Transaksi</p>
-                <p class="font-bold text-gray-dark mt-0.5 sm:text-right">03 Jul 2025 · 14:45 WIB</p>
+                <p class="font-bold text-gray-dark mt-0.5 sm:text-right">{{ $order->created_at->format('d M Y · H:i') }}</p>
             </div>
         </div>
         
@@ -51,20 +51,16 @@
                 <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-3">Daftar Produk</h3>
                 
                 <div class="divide-y divide-bg-light">
-                    @foreach([
-                        ['name' => 'Apel Fuji', 'qty' => 2, 'unit' => 'Kg', 'price' => 35000, 'img' => '1560806887-1e4cd0b6cbd6'],
-                        ['name' => 'Stroberi', 'qty' => 1, 'unit' => 'Pack', 'price' => 45000, 'img' => '1464965911861-746a04b4bca6'],
-                        ['name' => 'Mangga Harum Manis', 'qty' => 3, 'unit' => 'Kg', 'price' => 28000, 'img' => '1553279768-865429fa0078']
-                    ] as $item)
+                    @foreach($order->orderItems as $item)
                         <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
                             <div class="w-14 h-14 rounded-xl border border-gray-light bg-white p-1.5 flex items-center justify-center flex-shrink-0">
-                                <img src="{{ \App\Http\Controllers\ProductData::img($item['img'], 100, 100) }}" alt="{{ $item['name'] }}" class="max-w-full max-h-full object-contain" />
+                                <img src="{{ \App\Http\Controllers\ProductData::img($item->product->image ?? $item->product->img ?? '', 100, 100) }}" alt="{{ $item->product->name ?? 'Produk' }}" class="max-w-full max-h-full object-contain" />
                             </div>
                             <div class="flex-grow min-w-0">
-                                <p class="font-bold text-gray-dark text-sm leading-tight truncate">{{ $item['name'] }}</p>
-                                <p class="text-xs text-gray-muted mt-0.5">{{ $item['qty'] }} {{ $item['unit'] }} · {{ \App\Http\Controllers\ProductData::rp($item['price']) }} / {{ $item['unit'] }}</p>
+                                <p class="font-bold text-gray-dark text-sm leading-tight truncate">{{ $item->product->name ?? 'Produk' }}</p>
+                                <p class="text-xs text-gray-muted mt-0.5">{{ $item->qty }} {{ $item->product->unit ?? '' }} · {{ \App\Http\Controllers\ProductData::rp($item->price) }} / {{ $item->product->unit ?? '' }}</p>
                             </div>
-                            <p class="font-bold text-gray-dark text-sm">{{ \App\Http\Controllers\ProductData::rp($item['price'] * $item['qty']) }}</p>
+                            <p class="font-bold text-gray-dark text-sm">{{ \App\Http\Controllers\ProductData::rp($item->price * $item->qty) }}</p>
                         </div>
                     @endforeach
                 </div>
@@ -101,26 +97,32 @@
                 
                 <div class="space-y-2 text-sm text-gray-muted border-b border-bg-light pb-4 mb-4">
                     <div class="flex justify-between">
-                        <span>Total Harga (3 barang)</span>
-                        <span class="font-semibold text-gray-dark">Rp 199.000</span>
+                        <span>Total Harga ({{ $order->orderItems->sum('qty') }} barang)</span>
+                        <span class="font-semibold text-gray-dark">{{ \App\Http\Controllers\ProductData::rp($order->subtotal) }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Ongkos Kirim</span>
-                        <span class="font-semibold text-gray-dark">Rp 15.000</span>
+                        <span class="font-semibold text-gray-dark">{{ \App\Http\Controllers\ProductData::rp($order->shipping_cost) }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Metode Pembayaran</span>
-                        <span class="font-semibold text-gray-dark">Transfer Bank (BCA)</span>
+                        <span class="font-semibold text-gray-dark">{{ $order->payment->method ?? 'Belum dipilih' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Status Pembayaran</span>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-light text-primary">Sudah Bayar</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ ($order->payment->payment_status ?? 'Menunggu') === 'Lunas' ? 'bg-green-light text-primary' : 'bg-orange-50 text-orange-600' }}">{{ $order->payment->payment_status ?? 'Menunggu' }}</span>
                     </div>
+                    @if($order->payment && $order->payment->payment_date)
+                        <div class="flex justify-between">
+                            <span>Tanggal Pembayaran</span>
+                            <span class="font-semibold text-gray-dark">{{ $order->payment->payment_date->format('d M Y H:i') }}</span>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="flex justify-between font-bold text-gray-dark text-base">
                     <span>Total Pembayaran</span>
-                    <span class="text-primary font-extrabold text-lg">Rp 214.000</span>
+                    <span class="text-primary font-extrabold text-lg">{{ \App\Http\Controllers\ProductData::rp($order->total) }}</span>
                 </div>
             </div>
 
@@ -128,7 +130,11 @@
             <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft transition-all">
                 <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-3">Bukti Pembayaran</h3>
                 <div class="border border-gray-light rounded-xl overflow-hidden shadow-sm aspect-[4/3] bg-bg-light flex items-center justify-center p-4">
-                    <img src="https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=300&h=200&fit=crop&auto=format" alt="Struk Transfer" class="max-w-full max-h-full object-cover rounded shadow-sm border border-gray-light" />
+                    @if($order->payment && $order->payment->proof_of_payment)
+                        <img src="{{ asset('storage/' . $order->payment->proof_of_payment) }}" alt="Bukti Pembayaran" class="max-w-full max-h-full object-cover rounded shadow-sm border border-gray-light" />
+                    @else
+                        <div class="text-sm text-gray-muted">Belum ada bukti pembayaran yang diunggah.</div>
+                    @endif
                 </div>
             </div>
         </div>

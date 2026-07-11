@@ -99,7 +99,7 @@
         @endif
 
         <!-- Upload Bukti Pembayaran -->
-        <form action="{{ route('payment.submit') }}" method="POST" class="space-y-4 pt-2 border-t border-bg-light">
+        <form action="{{ route('payment.submit') }}" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2 border-t border-bg-light">
             @csrf
             <input type="hidden" name="order_id" value="{{ $order->id }}">
             <input type="hidden" name="payment_method" value="{{ $method }}">

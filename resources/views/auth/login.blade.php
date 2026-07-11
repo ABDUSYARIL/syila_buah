@@ -74,8 +74,16 @@
                     <h2 class="text-2xl font-bold text-gray-dark tracking-tight">Masuk ke Akun</h2>
                     <p class="text-gray-muted text-sm mb-8 mt-1">Masukkan email dan password Anda.</p>
 
+                    {{-- Notifications --}}
+                    @if(session('error'))
+                        <div class="mb-4 p-3 rounded bg-red-50 text-red-700 text-sm border border-red-200">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
                     <form action="{{ route('login.post') }}" method="POST" class="space-y-5">
                         @csrf
+                        
                         <!-- Email Input -->
                         <div class="flex flex-col gap-1.5">
                             <label class="text-sm font-semibold text-gray-dark">Email</label>
@@ -86,9 +94,11 @@
                                 <input
                                     type="email"
                                     name="email"
+                                    value="{{ old('email') }}"
                                     required
                                     placeholder="contoh@email.com"
-                                    class="w-full rounded-xl border border-gray-light bg-white px-4 py-3 text-sm text-gray-dark placeholder-gray-muted focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all pl-10"
+                                    {{-- Merah HANYA jika email tidak terdaftar --}}
+                                    class="w-full rounded-xl border @if(session('error') === 'Email tidak terdaftar.') border-red-400 focus:ring-red-500/10 @else border-gray-light focus:border-primary focus:ring-primary/10 @endif bg-white px-4 py-3 text-sm text-gray-dark placeholder-gray-muted focus:outline-none focus:ring-4 transition-all pl-10"
                                 />
                             </div>
                         </div>
@@ -105,7 +115,8 @@
                                     name="password"
                                     required
                                     placeholder="Masukkan password"
-                                    class="w-full rounded-xl border border-gray-light bg-white px-4 py-3 text-sm text-gray-dark placeholder-gray-muted focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all pl-10 pr-12"
+                                    {{-- Merah HANYA jika password salah --}}
+                                    class="w-full rounded-xl border @if(session('error') === 'Kata sandi salah.') border-red-400 focus:ring-red-500/10 @else border-gray-light focus:border-primary focus:ring-primary/10 @endif bg-white px-4 py-3 text-sm text-gray-dark placeholder-gray-muted focus:outline-none focus:ring-4 transition-all pl-10 pr-12"
                                 />
                                 <div class="absolute right-3 top-1/2 -translate-y-1/2">
                                     <button type="button" @click="showPw = !showPw" class="text-gray-muted hover:text-primary transition-colors cursor-pointer">

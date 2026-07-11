@@ -9,6 +9,13 @@
         <p class="text-sm text-gray-muted">{{ count($orders) }} total pesanan</p>
     </div>
 
+    @if(session('success'))
+        <div class="mb-4 p-3 rounded bg-green-light text-primary text-sm">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm">{{ session('error') }}</div>
+    @endif
+
     <!-- Filter Card -->
     <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-4 mb-4 hover:shadow-soft transition-all duration-300">
         <form action="{{ route('admin.orders') }}" method="GET" class="flex flex-col sm:flex-row gap-3 flex-wrap">
@@ -41,7 +48,7 @@
             <table class="w-full text-sm">
                 <thead class="bg-bg-light">
                     <tr class="border-b border-gray-light">
-                        @foreach(['Invoice', 'Pelanggan', 'Tanggal', 'Total', 'Pembayaran', 'Status', 'Aksi'] as $h)
+                        @foreach(['Invoice', 'Pelanggan', 'Tanggal', 'Total', 'Pembayaran', 'Bukti', 'Status', 'Aksi'] as $h)
                             <th class="text-left py-3 px-4 text-xs font-semibold text-gray-muted uppercase tracking-wide">{{ $h }}</th>
                         @endforeach
                     </tr>
@@ -61,7 +68,18 @@
                                     {{ $o['payStatus'] }}
                                 </span>
                             </td>
-                            
+
+                            <td class="py-3.5 px-4">
+                                @if($o['proof'])
+                                    <a href="{{ asset('storage/' . $o['proof']) }}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-primary text-primary text-xs font-semibold hover:bg-primary/10 transition-colors">
+                                        <span class="material-symbols-rounded text-sm">visibility</span>
+                                        Lihat
+                                    </a>
+                                @else
+                                    <span class="text-xs text-gray-muted">Tidak ada</span>
+                                @endif
+                            </td>
+
                             <!-- Status -->
                             <td class="py-3.5 px-4">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold 
@@ -73,13 +91,55 @@
                             <!-- Aksi -->
                             <td class="py-3.5 px-4">
                                 <div class="flex gap-1.5">
-                                    <button onclick="alert('Detail Invoice: {{ $o['id'] }}\nPelanggan: {{ $o['customer'] }}\nTotal: {{ \App\Http\Controllers\ProductData::rp($o['total']) }}\nAlamat: {{ $o['address'] }}')" class="px-2.5 py-1.5 rounded-xl bg-green-light text-primary text-xs font-semibold hover:bg-green-200 cursor-pointer shadow-sm">Detail</button>
-                                    @if($o['payStatus'] === 'Menunggu Verifikasi')
-                                        <button onclick="alert('Pembayaran pesanan {{ $o['id'] }} diverifikasi!')" class="px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 cursor-pointer shadow-sm">Verifikasi</button>
+
+                                    <!-- Detail -->
+                                    <button
+                                        onclick='showDetail(@json($o))'
+                                        class="px-2.5 py-1.5 rounded-xl bg-green-light text-primary text-xs font-semibold hover:bg-green-200 cursor-pointer shadow-sm">
+                                        Detail
+                                    </button>
+
+                                    @if($o['payStatus'] === 'Menunggu Verifikasi' || $o['payStatus'] === 'Menunggu')
+                                        <form action="{{ route('admin.orders.accept', $o['id']) }}" method="POST" style="display:inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="px-2.5 py-1.5 rounded-xl bg-green-light text-primary text-xs font-semibold hover:bg-green-200 cursor-pointer shadow-sm">
+                                                Terima
+                                            </button>
+                                        </form>
+
+                                        <form action="{{ route('admin.orders.reject', $o['id']) }}"
+                                            method="POST"
+                                            style="display:inline"
+                                            onsubmit="return confirm('Yakin tolak pesanan {{ $o['id'] }}?');">
+                                            @csrf
+                                            <button type="submit"
+                                                class="px-2.5 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 cursor-pointer shadow-sm">
+                                                Tolak
+                                            </button>
+                                        </form>
                                     @endif
+
                                     @if($o['status'] === 'Diproses')
-                                        <button onclick="alert('Pesanan {{ $o['id'] }} diubah statusnya menjadi Dikirim!')" class="px-2.5 py-1.5 rounded-xl bg-[#FFF3E0] text-accent text-xs font-semibold hover:bg-[#FFE0B2] cursor-pointer shadow-sm">Kirim</button>
+                                        <form action="{{ route('admin.orders.ship', $o['id']) }}" method="POST" style="display:inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="px-2.5 py-1.5 rounded-xl bg-[#FFF3E0] text-accent text-xs font-semibold hover:bg-[#FFE0B2] cursor-pointer shadow-sm">
+                                                Kirim
+                                            </button>
+                                        </form>
                                     @endif
+
+                                    @if($o['status'] === 'Dikirim')
+                                        <form action="{{ route('admin.orders.complete', $o['id']) }}" method="POST" style="display:inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="px-2.5 py-1.5 rounded-xl bg-green-light text-primary text-xs font-semibold hover:bg-green-200 cursor-pointer shadow-sm">
+                                                Selesai
+                                            </button>
+                                        </form>
+                                    @endif
+
                                 </div>
                             </td>
                         </tr>
@@ -89,4 +149,162 @@
         </div>
     </div>
 </div>
+<!-- Modal Detail -->
+<div id="detailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+    <div class="bg-white w-full max-w-4xl rounded-2xl p-6 shadow-xl">
+
+        <div class="flex justify-between items-center mb-5">
+
+            <h2 class="text-xl font-bold">
+                Detail Pesanan
+            </h2>
+
+            <button onclick="closeDetail()"
+                class="text-2xl font-bold">
+                ×
+            </button>
+
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-5">
+
+            <div>
+                <p class="text-gray-500">Invoice</p>
+                <p id="d_invoice" class="font-semibold"></p>
+            </div>
+
+            <div>
+                <p class="text-gray-500">Tanggal</p>
+                <p id="d_date"></p>
+            </div>
+
+            <div>
+                <p class="text-gray-500">Pelanggan</p>
+                <p id="d_customer"></p>
+            </div>
+
+            <div>
+                <p class="text-gray-500">Status</p>
+                <p id="d_status"></p>
+            </div>
+
+            <div>
+                <p class="text-gray-500">Pembayaran</p>
+                <p id="d_payment"></p>
+            </div>
+
+            <div>
+                <p class="text-gray-500">Pengiriman</p>
+                <p id="d_method"></p>
+            </div>
+
+            <div class="col-span-2">
+                <p class="text-gray-500">Alamat</p>
+                <p id="d_address"></p>
+            </div>
+
+        </div>
+
+        <h3 class="font-bold mb-3">
+            Daftar Produk
+        </h3>
+
+        <table class="w-full border">
+
+            <thead class="bg-gray-100">
+
+                <tr>
+
+                    <th class="border p-2">Produk</th>
+
+                    <th class="border p-2">Qty</th>
+
+                    <th class="border p-2">Harga</th>
+
+                    <th class="border p-2">Subtotal</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="detailItems">
+
+            </tbody>
+
+        </table>
+
+        <div class="text-right mt-5">
+
+            <span class="font-bold">
+                Total :
+            </span>
+
+            <span id="d_total"
+                class="font-bold text-lg text-primary">
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+<script>
+
+function showDetail(order){
+
+    document.getElementById('d_invoice').innerText = order.id;
+    document.getElementById('d_date').innerText = order.date;
+    document.getElementById('d_customer').innerText = order.customer;
+    document.getElementById('d_status').innerText = order.status;
+    document.getElementById('d_payment').innerText = order.payStatus;
+    document.getElementById('d_method').innerText = order.method;
+    document.getElementById('d_address').innerText = order.address;
+
+    document.getElementById('d_total').innerText =
+        "Rp " + Number(order.total).toLocaleString("id-ID");
+
+    let rows = "";
+
+    if(order.items){
+
+        order.items.forEach(function(item){
+
+            rows += `
+                <tr>
+
+                    <td class="border p-2">${item.product}</td>
+
+                    <td class="border p-2 text-center">${item.qty}</td>
+
+                    <td class="border p-2 text-right">
+                        Rp ${Number(item.price).toLocaleString("id-ID")}
+                    </td>
+
+                    <td class="border p-2 text-right">
+                        Rp ${Number(item.subtotal).toLocaleString("id-ID")}
+                    </td>
+
+                </tr>
+            `;
+
+        });
+
+    }
+
+    document.getElementById("detailItems").innerHTML = rows;
+
+    document.getElementById("detailModal").classList.remove("hidden");
+    document.getElementById("detailModal").classList.add("flex");
+
+}
+
+function closeDetail(){
+
+    document.getElementById("detailModal").classList.add("hidden");
+    document.getElementById("detailModal").classList.remove("flex");
+
+}
+
+</script>
 @endsection

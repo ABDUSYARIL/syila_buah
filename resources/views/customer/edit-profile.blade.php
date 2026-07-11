@@ -3,9 +3,10 @@
 @section('title', 'Edit Profil - Syila Buah')
 
 @section('content')
+@php $u = Auth::user(); @endphp
 <div class="max-w-2xl mx-auto px-6 py-8" x-data="{ 
     photoUploaded: false,
-    photoSrc: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&auto=format'
+    photoSrc: '{{ $u && $u->avatar ? asset('storage/' . $u->avatar) : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&auto=format' }}'
 }">
     <div class="mb-8">
         <a href="{{ route('profile') }}" class="inline-flex items-center gap-1.5 text-sm text-gray-muted hover:text-primary transition-colors">
@@ -15,17 +16,15 @@
     </div>
 
     <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-8 hover:shadow-soft-hover transition-all duration-300">
-        <form action="{{ route('profile.update') }}" method="POST" class="space-y-6">
+        <form action="{{ route('profile.update') }}" method="POST" class="space-y-6" enctype="multipart/form-data">
             @csrf
             
             <!-- Upload Foto Section -->
             <div class="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-bg-light">
                 <div class="relative">
+                    @php $u = Auth::user(); @endphp
                     <img :src="photoSrc" alt="Foto profil" class="w-24 h-24 rounded-2xl object-cover shadow-md border border-gray-light" />
-                    <button type="button" @click="photoUploaded = true; photoSrc='https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&auto=format'" 
-                            class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-md hover:bg-primary-hover transition-colors cursor-pointer border-2 border-white">
-                        <span class="material-symbols-rounded text-sm">photo_camera</span>
-                    </button>
+                    <input type="file" name="avatar" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer rounded-2xl" @change="photoUploaded = true; photoSrc = URL.createObjectURL($event.target.files[0])" />
                 </div>
                 <div class="text-center sm:text-left space-y-1">
                     <p class="text-sm font-semibold text-gray-dark">Foto Profil</p>
@@ -42,7 +41,7 @@
                     <input
                         type="text"
                         name="name"
-                        value="Rina Kartika"
+                        value="{{ old('name', Auth::user()->name ?? '') }}"
                         required
                         class="w-full rounded-xl border border-gray-light bg-white px-4 py-3 text-sm text-gray-dark focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                     />
@@ -54,7 +53,7 @@
                     <input
                         type="email"
                         name="email"
-                        value="rina.kartika@email.com"
+                        value="{{ old('email', Auth::user()->email ?? '') }}"
                         required
                         class="w-full rounded-xl border border-gray-light bg-white px-4 py-3 text-sm text-gray-dark focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                     />
@@ -66,7 +65,7 @@
                     <input
                         type="tel"
                         name="phone"
-                        value="081234567890"
+                        value="{{ old('phone', Auth::user()->phone ?? '') }}"
                         required
                         class="w-full rounded-xl border border-gray-light bg-white px-4 py-3 text-sm text-gray-dark focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                     />
@@ -80,7 +79,7 @@
                         required
                         rows="3"
                         class="w-full rounded-xl border border-gray-light bg-white px-4 py-3 text-sm text-gray-dark focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all resize-none"
-                    >Jl. Melati No. 12, RT 03/RW 05, Kel. Sukasari, Kec. Cicendo, Kota Bandung, Jawa Barat 40171</textarea>
+                    >{{ old('address', Auth::user()->address ?? '') }}</textarea>
                 </div>
             </div>
 

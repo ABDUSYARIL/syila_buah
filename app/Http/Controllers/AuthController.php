@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class AuthController extends Controller
 {
     public function loginPage()
     {
         $prev = url()->previous();
-        // Only save intended redirect if previous URL is not login or register itself
         if ($prev && !str_contains($prev, '/login') && !str_contains($prev, '/register')) {
             session(['url.intended' => $prev]);
         }
@@ -18,17 +20,48 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $email = $request->input('email');
-        $password = $request->input('password');
-        
-        // Database Authentication check
-        $user = \App\Models\User::where('email', $email)->first();
-        if ($user && \Hash::check($password, $user->password)) {
-            if ($user->role === 'admin') {
-                session(['role' => 'admin', 'username' => $user->name]);
+        $data = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $credentials = ['email' => $data['email'], 'password' => $data['password']];
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+
+            // Cek status aktif
+            if (isset($user->status) && $user->status !== 'aktif') {
+                Auth::logout();
+                return back()->with('error', 'Akun Anda tidak aktif.')->withInput();
+            }
+
+            // --- LOGIKA UTAMA PEMISAH TOMBOL LOGIN ---
+
+            // JIKA USER MENEKAN TOMBOL "MASUK SEBAGAI ADMIN"
+            if ($request->has('login_admin')) {
+                // Cek apakah role di database memang admin
+                if ($user->role !== 'admin') {
+                    Auth::logout();
+                    return back()->with('error', 'Anda tidak memiliki akses sebagai Admin.')->withInput();
+                }
+
+                // Sukses masuk sebagai Admin
+                session(['role' => $user->role, 'username' => $user->name]);
                 return redirect()->route('admin.dashboard');
-            } else {
-                session(['role' => 'customer', 'username' => $user->name]);
+            } 
+            
+            // JIKA USER MENEKAN TOMBOL "MASUK" BIASA (PELANGGAN)
+            else {
+                // Jika akun admin tapi mencoba login lewat tombol pelanggan biasa
+                if ($user->role === 'admin') {
+                    Auth::logout();
+                    return back()->with('error', 'Akun Admin silakan login melalui tombol Admin.')->withInput();
+                }
+
+                // Sukses masuk sebagai Pelanggan
+                session(['role' => $user->role, 'username' => $user->name]);
+
                 $intended = session()->pull('url.intended');
                 if (!$intended || str_contains($intended, '/logout')) {
                     $intended = route('home');
@@ -36,21 +69,16 @@ class AuthController extends Controller
                 return redirect()->to($intended);
             }
         }
-        
-        // Simple mock fallback to prevent lockout during evaluation
-        if ($request->has('login_admin') || str_contains($email, 'admin')) {
-            session(['role' => 'admin', 'username' => 'Syila Admin']);
-            return redirect()->route('admin.dashboard');
+
+        // Tampilan Pesan Error Spesifik Anda
+        $user = User::where('email', $data['email'])->first();
+        if (!$user) {
+            $message = 'Email tidak terdaftar.';
+        } else {
+            $message = 'Kata sandi salah.';
         }
 
-        session(['role' => 'customer', 'username' => 'Rina Kartika']);
-        
-        // Redirect to intended URL if saved, otherwise default to home page
-        $intended = session()->pull('url.intended');
-        if (!$intended || str_contains($intended, '/logout')) {
-            $intended = route('home');
-        }
-        return redirect()->to($intended);
+        return back()->with('error', $message)->withInput();
     }
 
     public function registerPage()
@@ -60,7 +88,23 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        session(['role' => 'customer', 'username' => $request->input('name', 'Rina Kartika')]);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'pelanggan',
+            'status' => 'aktif',
+        ]);
+
+        Auth::login($user);
+
+        session(['role' => $user->role, 'username' => $user->name]);
         
         $intended = session()->pull('url.intended', route('home'));
         return redirect()->to($intended);
@@ -68,6 +112,7 @@ class AuthController extends Controller
 
     public function logout()
     {
+        Auth::logout();
         session()->forget(['role', 'username', 'cart']);
         return redirect()->route('landing');
     }

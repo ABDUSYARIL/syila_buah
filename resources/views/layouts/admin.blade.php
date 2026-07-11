@@ -79,15 +79,7 @@
                     <p class="font-semibold text-gray-dark text-sm">Selamat datang, Admin!</p>
                     <p class="text-xs text-gray-muted" id="current-date"></p>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button class="relative w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors">
-                        <span class="material-symbols-rounded text-gray-muted text-lg">notifications</span>
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent animate-ping"></span>
-                    </button>
-                    <div class="w-9 h-9 rounded-xl bg-green-light flex items-center justify-center">
-                        <span class="material-symbols-rounded text-primary">account_circle</span>
-                    </div>
-                </div>
+                <div></div>
             </header>
             
             <!-- Main Content Grid -->

@@ -56,7 +56,7 @@
                             
                             <!-- Aksi -->
                             <td class="py-4.5 px-6">
-                                <a href="{{ route('order.detail') }}" class="inline-flex items-center justify-center gap-1.5 font-bold rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3.5 py-2 text-xs transition-colors duration-300">
+                                <a href="{{ route('order.detail', ['order_id' => $o['db_id'] ]) }}" class="inline-flex items-center justify-center gap-1.5 font-bold rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3.5 py-2 text-xs transition-colors duration-300">
                                     Detail <span class="material-symbols-rounded text-sm">visibility</span>
                                 </a>
                             </td>

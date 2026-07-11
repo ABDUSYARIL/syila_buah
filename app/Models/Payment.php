@@ -18,6 +18,10 @@ class Payment extends Model
         'verified_by_user_id'
     ];
 
+    protected $casts = [
+        'payment_date' => 'datetime',
+    ];
+
     public function order()
     {
         return $this->belongsTo(Order::class);

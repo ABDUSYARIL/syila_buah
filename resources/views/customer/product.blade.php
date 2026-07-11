@@ -8,7 +8,7 @@
     maxStock: {{ $product['stock'] }}, 
     price: {{ $product['price'] }}, 
     showGuestDialog: false,
-    isLoggedIn: {{ session('role') === 'customer' ? 'true' : 'false' }}
+    isLoggedIn: {{ (session('role') === 'pelanggan' || session('role') === 'customer') ? 'true' : 'false' }}
 }">
     <!-- Breadcrumb -->
     <div class="flex items-center gap-2 text-sm text-gray-muted mb-6">

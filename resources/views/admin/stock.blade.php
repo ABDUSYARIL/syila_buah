@@ -99,7 +99,7 @@
 
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-bold text-gray-dark">Alasan Penyesuaian</label>
-                    <select name="reason" required class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer">
+                    <select name="type" required>
                         <option value="Buah Busuk/Rusak">Buah Busuk / Rusak</option>
                         <option value="Selisih Perhitungan Opname">Selisih Perhitungan Opname</option>
                         <option value="Retur Pelanggan">Retur Pelanggan</option>

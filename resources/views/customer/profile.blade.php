@@ -3,6 +3,7 @@
 @section('title', 'Profil Saya - Syila Buah')
 
 @section('content')
+@php $user = Auth::user(); @endphp
 <div class="max-w-2xl mx-auto px-6 py-8">
     <div class="mb-8">
         <h1 class="text-3xl font-extrabold text-gray-dark tracking-tight">Profil Saya</h1>
@@ -21,24 +22,28 @@
         <!-- Profile Header Section -->
         <div class="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-bg-light">
             <div class="relative group">
-                <div class="w-24 h-24 rounded-2xl bg-green-light flex items-center justify-center shadow-md">
-                    <span class="material-symbols-rounded text-primary text-4xl">person</span>
-                </div>
+                @if($user && $user->avatar)
+                    <img src="{{ asset('storage/' . $user->avatar) }}" alt="Avatar" class="w-24 h-24 rounded-2xl object-cover shadow-md" />
+                @else
+                    <div class="w-24 h-24 rounded-2xl bg-green-light flex items-center justify-center shadow-md">
+                        <span class="material-symbols-rounded text-primary text-4xl">person</span>
+                    </div>
+                @endif
             </div>
             <div class="text-center sm:text-left space-y-1">
-                <p class="text-xl font-bold text-gray-dark">Rina Kartika</p>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-light text-primary">Member Gold</span>
-                <p class="text-xs text-gray-muted mt-1.5">Terdaftar sejak: Januari 2025</p>
+                <p class="text-xl font-bold text-gray-dark">{{ $user->name ?? 'Pelanggan' }}</p>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-light text-primary">{{ $user->role === 'admin' ? 'Admin' : 'Pelanggan' }}</span>
+                <p class="text-xs text-gray-muted mt-1.5">Terdaftar sejak: {{ $user->created_at ? $user->created_at->format('F Y') : '-' }}</p>
             </div>
         </div>
 
         <!-- Information List -->
         <div class="divide-y divide-bg-light text-sm">
             @foreach([
-                ['label' => 'Nama Lengkap', 'val' => 'Rina Kartika', 'icon' => 'person'],
-                ['label' => 'Email', 'val' => 'rina.kartika@email.com', 'icon' => 'mail'],
-                ['label' => 'Nomor HP', 'val' => '081234567890', 'icon' => 'phone'],
-                ['label' => 'Alamat Pengiriman', 'val' => 'Jl. Melati No. 12, RT 03/RW 05, Kel. Sukasari, Kec. Cicendo, Kota Bandung, Jawa Barat 40171', 'icon' => 'map']
+                ['label' => 'Nama Lengkap', 'val' => $user->name ?? '-', 'icon' => 'person'],
+                ['label' => 'Email', 'val' => $user->email ?? '-', 'icon' => 'mail'],
+                ['label' => 'Nomor HP', 'val' => $user->phone ?? '-', 'icon' => 'phone'],
+                ['label' => 'Alamat Pengiriman', 'val' => $user->address ?? '-', 'icon' => 'map']
             ] as $info)
                 <div class="flex flex-col sm:flex-row sm:justify-between py-4 gap-1">
                     <span class="text-gray-muted flex items-center gap-2 font-medium">

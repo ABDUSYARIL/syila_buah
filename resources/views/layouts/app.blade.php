@@ -21,7 +21,7 @@
     <!-- Navbar -->
     <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-light shadow-soft transition-all duration-300" x-data="{ mobileOpen: false }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">            <!-- Logo -->
-            <a href="{{ session('role') === 'customer' ? route('home') : route('landing') }}" class="flex items-center gap-2 flex-shrink-0 group">
+            <a href="{{ (session('role') === 'pelanggan' || session('role') === 'customer') ? route('home') : route('landing') }}" class="flex items-center gap-2 flex-shrink-0 group">
                 <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-6">
                     <span class="material-symbols-rounded text-white text-lg">eco</span>
                 </div>
@@ -35,7 +35,7 @@
                 @if(request()->routeIs('landing'))
                     <a href="#tentang-kami" class="text-sm text-gray-muted hover:text-primary font-medium transition-colors">Tentang Kami</a>
                     <a href="#kontak" class="text-sm text-gray-muted hover:text-primary font-medium transition-colors">Kontak</a>
-                @elseif(session('role') === 'customer')
+                @elseif(session('role') === 'pelanggan' || session('role') === 'customer')
                     <a href="{{ route('home') }}" class="text-sm {{ request()->routeIs('home') ? 'text-primary font-semibold' : 'text-gray-muted hover:text-primary font-medium' }} transition-colors">Beranda</a>
                     <a href="{{ route('catalog') }}" class="text-sm {{ request()->routeIs('catalog') ? 'text-primary font-semibold' : 'text-gray-muted hover:text-primary font-medium' }} transition-colors">Produk</a>
                     <a href="{{ route('history') }}" class="text-sm {{ request()->routeIs('history') ? 'text-primary font-semibold' : 'text-gray-muted hover:text-primary font-medium' }} transition-colors">Riwayat Pesanan</a>
@@ -53,7 +53,7 @@
                     <a href="{{ route('catalog') }}" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover active:bg-primary-active px-5 py-2.5 text-sm shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 transition-all duration-300">
                         Lihat Produk
                     </a>
-                @elseif(session('role') === 'customer')
+                @elseif(session('role') === 'pelanggan' || session('role') === 'customer')
                     <!-- Logged in actions -->
                     <a href="{{ route('cart') }}" class="relative w-10 h-10 rounded-xl flex items-center justify-center hover:bg-green-light text-gray-dark transition-all duration-300 hover:shadow-soft">
                         <span class="material-symbols-rounded">shopping_cart</span>
@@ -79,7 +79,7 @@
 
             <!-- Mobile Hamburger -->
             <div class="flex items-center gap-2 md:hidden">
-                @if(!request()->routeIs('landing') && session('role') === 'customer')
+                @if(!request()->routeIs('landing') && (session('role') === 'pelanggan' || session('role') === 'customer'))
                     <a href="{{ route('cart') }}" class="relative w-10 h-10 rounded-xl flex items-center justify-center hover:bg-green-light text-gray-dark transition-colors">
                         <span class="material-symbols-rounded">shopping_cart</span>
                         @if(collect(session('cart', []))->sum('qty') > 0)
@@ -102,7 +102,7 @@
                     <a href="{{ route('login') }}" class="block py-2 text-center text-sm text-gray-muted hover:text-primary font-semibold">Login</a>
                     <a href="{{ route('catalog') }}" class="block py-2.5 text-center text-sm font-semibold rounded-xl bg-primary text-white">Lihat Produk</a>
                 </div>
-            @elseif(session('role') === 'customer')
+            @elseif(session('role') === 'pelanggan' || session('role') === 'customer')
                 <a href="{{ route('home') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Beranda</a>
                 <a href="{{ route('catalog') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Produk</a>
                 <a href="{{ route('history') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Riwayat Pesanan</a>

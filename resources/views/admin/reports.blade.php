@@ -3,18 +3,15 @@
 @section('title', 'Laporan Penjualan - Admin Syila Buah')
 
 @section('content')
-<div x-data="{ period: 'Bulanan' }">
+<div x-data="{ period: @json($period) }">
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-dark">Laporan Penjualan</h1>
             <p class="text-sm text-gray-muted">Analitik dan statistik bisnis Syila Buah</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="alert('Mengekspor laporan ke PDF...')" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-3.5 py-2 text-xs cursor-pointer transition-colors shadow-sm">
-                <span class="material-symbols-rounded text-sm">download</span> PDF
-            </button>
-            <button onclick="alert('Mengekspor laporan ke Excel...')" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-3.5 py-2 text-xs cursor-pointer transition-colors shadow-sm">
-                <span class="material-symbols-rounded text-sm">download</span> Excel
+            <button onclick="window.print()" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-3.5 py-2 text-xs cursor-pointer transition-colors shadow-sm">
+                <span class="material-symbols-rounded text-sm">print</span> Cetak PDF
             </button>
         </div>
     </div>
@@ -22,28 +19,22 @@
     <!-- Period Filter -->
     <div class="flex gap-2 mb-6">
         @foreach(['Harian', 'Bulanan', 'Tahunan'] as $p)
-            <button 
-                @click="period = '{{ $p }}'; alert('Menampilkan filter: {{ $p }}')"
-                class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer select-none"
+            <a href="{{ route('admin.reports', ['period' => $p]) }}"
+                class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all border select-none"
                 :class="period === '{{ $p }}' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white border-gray-light text-gray-muted hover:border-primary hover:text-primary'"
             >
                 {{ $p }}
-            </button>
+            </a>
         @endforeach
     </div>
 
     <!-- KPI Grid -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        @foreach([
-            ['label' => 'Total Pendapatan', 'value' => 'Rp 128,5 Jt', 'change' => '↑ 18%', 'color' => 'text-primary'],
-            ['label' => 'Total Pesanan', 'value' => '934', 'change' => '↑ 23%', 'color' => 'text-blue-600'],
-            ['label' => 'Rata-rata Pesanan', 'value' => 'Rp 137.500', 'change' => '↑ 5%', 'color' => 'text-accent'],
-            ['label' => 'Produk Terjual', 'value' => '2.847 unit', 'change' => '↑ 31%', 'color' => 'text-purple-600']
-        ] as $k)
+        @foreach($stats as $stat)
             <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-5 hover:shadow-soft-hover transition-all duration-300">
-                <p class="text-xs text-gray-muted mb-1 font-medium">{{ $k['label'] }}</p>
-                <p class="text-xl font-extrabold {{ $k['color'] }} leading-none tracking-tight">{{ $k['value'] }}</p>
-                <p class="text-[10px] text-primary font-bold mt-2">{{ $k['change'] }} vs bulan lalu</p>
+                <p class="text-xs text-gray-muted mb-1 font-medium">{{ $stat['label'] }}</p>
+                <p class="text-xl font-extrabold {{ $stat['color'] }} leading-none tracking-tight">{{ $stat['value'] }}</p>
+                <p class="text-[10px] text-primary font-bold mt-2">{{ $stat['change'] }} vs periode sebelumnya</p>
             </div>
         @endforeach
     </div>
@@ -52,7 +43,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
         <!-- Revenue Bar Chart -->
         <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
-            <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-4">Pendapatan Bulanan</h3>
+            <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-4">Pendapatan {{ $period }}</h3>
             <div class="relative h-56 w-full">
                 <canvas id="revBarChart"></canvas>
             </div>
@@ -60,7 +51,7 @@
         
         <!-- Orders Area Chart -->
         <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
-            <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-4">Jumlah Pesanan Bulanan</h3>
+            <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-4">Jumlah Pesanan {{ $period }}</h3>
             <div class="relative h-56 w-full">
                 <canvas id="ordersAreaChart"></canvas>
             </div>

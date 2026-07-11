@@ -11,14 +11,6 @@
 
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        @php
-            $stats = [
-                ['label' => 'Total Pendapatan', 'value' => 'Rp 128,5 Jt', 'change' => '+18%', 'icon' => 'payments', 'color' => 'bg-green-light text-primary'],
-                ['label' => 'Total Pesanan', 'value' => '934', 'change' => '+23%', 'icon' => 'local_mall', 'color' => 'bg-blue-50 text-blue-600'],
-                ['label' => 'Produk Terdaftar', 'value' => '12', 'change' => 'Stabil', 'icon' => 'inventory_2', 'color' => 'bg-[#FFF3E0] text-accent'],
-                ['label' => 'Total Admin', 'value' => '3', 'change' => 'Aktif', 'icon' => 'group', 'color' => 'bg-purple-50 text-purple-600'],
-            ];
-        @endphp
         @foreach($stats as $c)
             <div class="bg-white rounded-2xl p-5 border border-gray-light shadow-soft hover:shadow-soft-hover transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-between">
                 <div>
