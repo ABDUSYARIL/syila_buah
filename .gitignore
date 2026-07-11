@@ -2,10 +2,7 @@
 /node_modules
 /public/build
 /public/hot
-/storage/*.key
 /bootstrap/cache/*.php
-.env
-.env.*
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
