@@ -253,7 +253,7 @@ class CustomerController extends Controller
             $userId = \App\Models\User::where('role', 'pelanggan')->first()->id ?? 2;
 
             $order = Order::create([
-                'user_id' => $userId,
+                'user_id' => Auth::id(),
                 'invoice_no' => $invoiceNo,
                 'shipping_address' => $shippingAddress,
                 'shipping_method' => $shippingMethod,

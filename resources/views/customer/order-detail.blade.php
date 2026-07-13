@@ -26,21 +26,54 @@
         </div>
         
         <!-- Timeline Steps Row -->
-        <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
-            @foreach([
-                ['l' => 'Dibuat', 'i' => 'done_all', 'done' => true],
-                ['l' => 'Bayar', 'i' => 'payment', 'done' => true],
-                ['l' => 'Verifikasi', 'i' => 'verified_user', 'done' => true],
-                ['l' => 'Diproses', 'i' => 'local_mall', 'done' => false],
-                ['l' => 'Dikirim', 'i' => 'local_shipping', 'done' => false],
-                ['l' => 'Selesai', 'i' => 'check_circle', 'done' => false]
-            ] as $step)
-                <div class="flex flex-col items-center text-center p-2 rounded-xl {{ $step['done'] ? 'bg-green-light/40 border border-primary/10' : 'border border-transparent' }}">
-                    <span class="material-symbols-rounded text-sm {{ $step['done'] ? 'text-primary' : 'text-gray-300' }}">{{ $step['i'] }}</span>
-                    <p class="text-[10px] font-bold mt-1 {{ $step['done'] ? 'text-primary' : 'text-gray-300' }}">{{ $step['l'] }}</p>
-                </div>
-            @endforeach
+        @php
+    $status = strtolower(trim($order->status));
+
+    $steps = [
+        ['label' => 'Dibuat', 'icon' => 'done_all'],
+        ['label' => 'Bayar', 'icon' => 'payment'],
+        ['label' => 'Verifikasi', 'icon' => 'verified_user'],
+        ['label' => 'Diproses', 'icon' => 'local_mall'],
+        ['label' => 'Dikirim', 'icon' => 'local_shipping'],
+        ['label' => 'Selesai', 'icon' => 'check_circle'],
+    ];
+
+    $currentStep = match ($status) {
+        'menunggu pembayaran' => 1,
+        'menunggu verifikasi' => 2,
+        'diproses' => 3,
+        'dikirim' => 4,
+        'selesai' => 5,
+        default => 0,
+    };
+@endphp
+<div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+    @foreach($steps as $index => $step)
+        @php
+            $done = $index <= $currentStep;
+        @endphp
+
+        <div class="flex flex-col items-center text-center p-2 rounded-xl
+            {{ $done
+                ? 'bg-green-light/40 border border-primary/10'
+                : 'border border-transparent' }}">
+
+            <span class="material-symbols-rounded text-sm
+                {{ $done
+                    ? 'text-primary'
+                    : 'text-gray-300' }}">
+                {{ $step['icon'] }}
+            </span>
+
+            <p class="text-[10px] font-bold mt-1
+                {{ $done
+                    ? 'text-primary'
+                    : 'text-gray-300' }}">
+                {{ $step['label'] }}
+            </p>
         </div>
+    @endforeach
+</div>
     </div>
 
     <!-- Product list and Details Layout (2 columns) -->
@@ -66,28 +99,70 @@
                 </div>
             </div>
 
+            @php
+                $orderStatus = strtolower(trim((string) ($order->status ?? '')));
+                $shippingAddress = filled($order->shipping_address) ? $order->shipping_address : 'Alamat belum tersedia.';
+                $shippingMethod = filled($order->shipping_method) ? $order->shipping_method : '-';
+
+                $statusBadge = match ($orderStatus) {
+                    'menunggu pembayaran', 'pending', 'menunggu_pembayaran' => [
+                        'label' => 'Menunggu Pembayaran',
+                        'class' => 'bg-red-50 text-red-600 border border-red-200',
+                    ],
+                    'menunggu verifikasi', 'menunggu_verifikasi', 'verifikasi', 'verified' => [
+                        'label' => 'Menunggu Verifikasi',
+                        'class' => 'bg-orange-50 text-orange-600 border border-orange-200',
+                    ],
+                    'diproses', 'processing', 'proses', 'dikemas', 'packing' => [
+                        'label' => 'Diproses',
+                        'class' => 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+                    ],
+                    'dikirim', 'shipped', 'delivery', 'sent' => [
+                        'label' => 'Dikirim',
+                        'class' => 'bg-blue-50 text-blue-700 border border-blue-200',
+                    ],
+                    'selesai', 'completed', 'done', 'finished', 'success' => [
+                        'label' => 'Selesai',
+                        'class' => 'bg-green-50 text-green-700 border border-green-200',
+                    ],
+                    'dibatalkan', 'cancelled', 'canceled', 'batal' => [
+                        'label' => 'Dibatalkan',
+                        'class' => 'bg-gray-100 text-gray-600 border border-gray-300',
+                    ],
+                    default => [
+                        'label' => ucwords(str_replace('_', ' ', $orderStatus ?: 'status belum tersedia')),
+                        'class' => 'bg-gray-100 text-gray-600 border border-gray-300',
+                    ],
+                };
+            @endphp
+
             <!-- Shipping Info Card -->
             <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft transition-all">
-                <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-3">Informasi Pengiriman</h3>
+                <div class="flex items-start justify-between gap-3 mb-4 border-b border-bg-light pb-3">
+                    <h3 class="font-bold text-gray-dark text-base">Informasi Pengiriman</h3>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold {{ $statusBadge['class'] }}">
+                        {{ $statusBadge['label'] }}
+                    </span>
+                </div>
+
                 <div class="space-y-3 text-sm">
                     <div>
                         <p class="text-xs text-gray-muted">Alamat Tujuan</p>
-                        <p class="font-bold text-gray-dark mt-0.5">Rina Kartika</p>
-                        <p class="text-gray-muted mt-0.5 leading-relaxed text-xs">Jl. Melati No. 12, RT 03/RW 05, Kel. Sukasari, Kec. Cicendo, Kota Bandung, Jawa Barat 40171</p>
+                        <p class="font-bold text-gray-dark mt-0.5">{{ $shippingAddress }}</p>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 pt-2 border-t border-bg-light">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-bg-light">
                         <div>
                             <p class="text-xs text-gray-muted">Metode Pengiriman</p>
-                            <p class="font-semibold text-gray-dark mt-0.5">Reguler (1-2 Hari)</p>
+                            <p class="font-semibold text-gray-dark mt-0.5">{{ $shippingMethod }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-muted">No. Resi Pengiriman</p>
-                            <p class="font-mono font-bold text-primary mt-0.5">SYLA-REG-43890123</p>
+                            <p class="text-xs text-gray-muted">Status Pesanan</p>
+                            <p class="font-semibold text-gray-dark mt-0.5">{{ $statusBadge['label'] }}</p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
         <!-- Right: Summary and Payment Proof -->
         <div class="space-y-6">
