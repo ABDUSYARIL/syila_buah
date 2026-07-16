@@ -62,69 +62,58 @@
 
 @section('scripts')
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const labels = {!! json_encode(array_column($salesData, 'month')) !!};
-        
-        // Rev Bar Chart Setup
-        const revCtx = document.getElementById('revBarChart').getContext('2d');
-        new Chart(revCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Pendapatan',
-                    data: {!! json_encode(array_column($salesData, 'revenue')) !!},
-                    backgroundColor: '#4CAF50',
-                    borderRadius: 6
+document.addEventListener("DOMContentLoaded", function () {
+
+    const salesData = {!! json_encode($salesData) !!};
+
+    const labels = salesData.map(item => item.month);
+    const revenues = salesData.map(item => item.revenue);
+    const orders = salesData.map(item => item.orders);
+
+    const revCtx = document.getElementById('revBarChart');
+
+    if(revCtx){
+        new Chart(revCtx,{
+            type:'bar',
+            data:{
+                labels:labels,
+                datasets:[{
+                    label:'Pendapatan',
+                    data:revenues,
+                    backgroundColor:'#4CAF50',
+                    borderRadius:6
                 }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: {
-                        ticks: {
-                            callback: function(value) {
-                                return (value / 1000000) + 'Jt';
-                            }
-                        }
-                    }
-                }
+            }
+        });
+    }
+
+    const orderCanvas = document.getElementById('ordersAreaChart');
+
+    if(orderCanvas){
+
+        const ctx = orderCanvas.getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0,0,0,220);
+        gradient.addColorStop(0,'rgba(255,152,0,.2)');
+        gradient.addColorStop(1,'rgba(255,152,0,0)');
+
+        new Chart(ctx,{
+            type:'line',
+            data:{
+                labels:labels,
+                datasets:[{
+                    label:'Jumlah Pesanan',
+                    data:orders,
+                    borderColor:'#FF9800',
+                    backgroundColor:gradient,
+                    fill:true,
+                    tension:.4
+                }]
             }
         });
 
-        // Orders Area Chart Setup
-        const ordersCtx = document.getElementById('ordersAreaChart').getContext('2d');
-        
-        const gradient = ordersCtx.createLinearGradient(0, 0, 0, 220);
-        gradient.addColorStop(0, 'rgba(255, 152, 0, 0.2)');
-        gradient.addColorStop(1, 'rgba(255, 152, 0, 0)');
+    }
 
-        new Chart(ordersCtx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Jumlah Pesanan',
-                    data: {!! json_encode(array_column($salesData, 'orders')) !!},
-                    borderColor: '#FF9800',
-                    borderWidth: 2.5,
-                    backgroundColor: gradient,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    });
+});
 </script>
 @endsection
