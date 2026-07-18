@@ -212,6 +212,20 @@
                     @endif
                 </div>
             </div>
+
+            <!-- Hubungi Admin WhatsApp -->
+            {{-- Menyediakan akses cepat menghubungi admin untuk konfirmasi pembayaran --}}
+            <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft transition-all text-center">
+                <h4 class="font-bold text-gray-dark text-sm mb-1">Butuh bantuan transaksi?</h4>
+                <p class="text-xs text-gray-muted leading-relaxed mb-4">Hubungi admin WhatsApp kami untuk konfirmasi pembayaran cepat.</p>
+                @php
+                    // Menyusun teks pesan WhatsApp otomatis berisi nomor invoice
+                    $waMsgDetail = rawurlencode("Halo Admin Syila Buah, saya ingin menanyakan status pesanan saya dengan Invoice: " . ($order->invoice_no ?? ''));
+                @endphp
+                <a href="https://wa.me/6281234567890?text={{ $waMsgDetail }}" target="_blank" class="w-full inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-4 py-2.5 text-xs transition-all cursor-pointer shadow-sm">
+                    <span class="material-symbols-rounded text-sm">support_agent</span> Chat WhatsApp Admin
+                </a>
+            </div>
         </div>
     </div>
 </div>

@@ -23,7 +23,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
         <!-- Left: Image Display -->
         <div class="space-y-4">
-            <div class="aspect-square rounded-2xl bg-white border border-gray-light p-8 flex items-center justify-center shadow-soft hover:shadow-soft-hover transition-all duration-300">
+            <div class="aspect-square rounded-2xl glass-premium p-8 flex items-center justify-center shadow-3d hover:shadow-3d-hover transition-all duration-500 animate-float">
                 <img src="{{ \App\Http\Controllers\ProductData::img($product['img'], 600, 600) }}" alt="{{ $product['name'] }}" class="max-w-full max-h-full object-contain transform hover:scale-105 transition-transform duration-300" />
             </div>
             <div class="grid grid-cols-4 gap-3">
@@ -40,17 +40,13 @@
             <div>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-light text-primary">{{ $product->category->name ?? 'Buah' }}</span>
                 <h1 class="text-3xl font-extrabold text-gray-dark mt-2 tracking-tight">{{ $product['name'] }}</h1>
+                {{-- Rating bintang produk dihapus sesuai instruksi --}}
                 <div class="flex items-center gap-3 mt-2">
-                    <div class="flex items-center gap-0.5">
-                        @for($i=1; $i<=5; $i++)
-                            <span class="material-symbols-rounded text-base text-accent {{ $i <= round($product['rating']) ? 'fill-1' : 'text-gray-200' }}">star</span>
-                        @endfor
-                    </div>
-                    <span class="text-sm text-gray-muted">({{ $product['sold'] }} terjual)</span>
+                    <span class="text-sm text-gray-muted">{{ $product['sold'] }} terjual</span>
                 </div>
             </div>
             
-            <div class="bg-white rounded-2xl border border-gray-light p-6 shadow-soft">
+            <div class="card-3d p-6 rounded-2xl">
                 <p class="text-3xl font-extrabold text-primary leading-none">{{ \App\Http\Controllers\ProductData::rp($product['price']) }}</p>
                 <p class="text-xs text-gray-muted mt-2">per {{ $product['unit'] }}</p>
             </div>
@@ -99,14 +95,14 @@
                     <button
                         type="submit"
                         @click.prevent="if(isLoggedIn) { $el.form.submit() } else { showGuestDialog = true }"
-                        class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border-2 border-primary text-primary hover:bg-green-light px-6 py-3 text-base transition-all duration-300 shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 cursor-pointer"
+                        class="inline-flex items-center justify-center gap-2 font-bold rounded-xl border-2 border-primary text-primary hover:bg-green-light px-6 py-3 text-base btn-3d cursor-pointer"
                     >
                         <span class="material-symbols-rounded text-lg">shopping_cart</span> Tambah ke Keranjang
                     </button>
                     <button
                         type="submit"
                         @click.prevent="if(isLoggedIn) { $el.form.action='{{ route('cart.add') }}?checkout=true'; $el.form.submit() } else { showGuestDialog = true }"
-                        class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-accent text-white hover:bg-accent-hover active:bg-accent-active px-6 py-3 text-base transition-all duration-300 shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 cursor-pointer"
+                        class="inline-flex items-center justify-center gap-2 font-bold rounded-xl bg-accent text-white btn-3d-accent px-6 py-3 text-base cursor-pointer"
                     >
                         Beli Sekarang
                     </button>
@@ -121,7 +117,7 @@
             <h2 class="text-2xl font-extrabold text-gray-dark mb-6 tracking-tight">Produk Terkait</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 @foreach ($related as $p)
-                    <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden group flex flex-col justify-between hover:shadow-soft-hover transform hover:-translate-y-1.5 transition-all duration-300">
+                    <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
                         <a href="{{ route('product.detail', $p['id']) }}" class="block">
                             <div class="relative bg-white overflow-hidden aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                                 <img

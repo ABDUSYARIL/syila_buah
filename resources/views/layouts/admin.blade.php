@@ -26,11 +26,8 @@
         <aside :class="collapsed ? 'w-16' : 'w-64'" class="bg-green-dark text-white flex flex-col transition-all duration-300 flex-shrink-0 min-h-screen shadow-lg">
             <!-- Header -->
             <div class="h-16 flex items-center justify-between px-4 border-b border-white/10">
-                <div class="flex items-center gap-2" x-show="!collapsed" x-transition.fade>
-                    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-md">
-                        <span class="material-symbols-rounded text-white text-base">eco</span>
-                    </div>
-                    <span class="font-bold text-sm leading-none tracking-tight">Syila<span class="text-green-200">Buah</span></span>
+                <div x-show="!collapsed" x-transition.fade>
+                    @include('partials.logo', ['textColor' => 'text-white', 'spanColor' => 'text-green-200'])
                 </div>
                 <button @click="collapsed = !collapsed" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors ml-auto cursor-pointer">
                     <span class="material-symbols-rounded text-sm" x-text="collapsed ? 'menu_open' : 'menu'">menu</span>
@@ -64,7 +61,7 @@
             
             <!-- Logout -->
             <div class="p-4 border-t border-white/10">
-                <a href="{{ route('login') }}" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-green-100 hover:bg-white/10 transition-all">
+                <a href="{{ route('logout') }}" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-green-100 hover:bg-white/10 transition-all">
                     <span class="material-symbols-rounded text-xl">logout</span>
                     <span x-show="!collapsed" x-transition.fade>Keluar</span>
                 </a>
@@ -73,13 +70,28 @@
         
         <!-- Main content area -->
         <div class="flex-grow min-w-0 flex flex-col">
-            <!-- Top bar -->
+            <!-- Top bar (Header Menu Atas Admin) -->
             <header class="h-16 bg-white border-b border-gray-light flex items-center justify-between px-6 flex-shrink-0 shadow-soft">
                 <div>
                     <p class="font-semibold text-gray-dark text-sm">Selamat datang, Admin!</p>
                     <p class="text-xs text-gray-muted" id="current-date"></p>
                 </div>
-                <div></div>
+                {{-- Menambahkan ikon pemberitahuan stok rendah yang terhubung langsung ke Manajemen Stok --}}
+                <div class="flex items-center gap-4">
+                    @php
+                        // Menghitung jumlah produk riil yang stoknya di bawah batas minimal (50 unit)
+                        $lowStockCount = \App\Models\Product::where('stock', '<', 50)->count();
+                    @endphp
+                    {{-- Jika ada produk yang stoknya menipis, tampilkan lonceng pemberitahuan merah yang berkedip --}}
+                    @if($lowStockCount > 0)
+                        <a href="{{ route('admin.stock') }}" class="relative w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-all border border-red-100 shadow-sm" title="Peringatan: {{ $lowStockCount }} Produk Stok Rendah">
+                            <span class="material-symbols-rounded text-xl animate-pulse">notifications_active</span>
+                            <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+                                {{ $lowStockCount }}
+                            </span>
+                        </a>
+                    @endif
+                </div>
             </header>
             
             <!-- Main Content Grid -->

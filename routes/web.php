@@ -10,6 +10,7 @@ Route::get('/login', [AuthController::class, 'loginPage'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::get('/register', [AuthController::class, 'registerPage'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Guest & Landing Route
 Route::get('/', [CustomerController::class, 'landingPage'])->name('landing');
@@ -37,8 +38,9 @@ Route::prefix('profile')->group(function () {
     Route::post('/change-password', [CustomerController::class, 'updatePassword'])->name('profile.change-password.update');
 });
 
-// Admin Routes
-Route::prefix('admin')->name('admin.')->group(function () {
+// Rute Admin — semua rute di sini dilindungi oleh middleware 'admin.auth'
+// Middleware ini memastikan hanya admin yang sudah login yang dapat mengakses halaman admin
+Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/products', [AdminController::class, 'products'])->name('products');
     Route::post('/products/save', [AdminController::class, 'saveProduct'])->name('products.save');
@@ -53,9 +55,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/orders/{invoice}/reject', [AdminController::class, 'rejectOrder'])->name('orders.reject');
     Route::post('/orders/{invoice}/ship', [AdminController::class, 'shipOrder'])->name('orders.ship');
     Route::post('/orders/{invoice}/complete', [AdminController::class, 'completeOrder'])->name('orders.complete');
-    Route::get('/admins', [AdminController::class, 'admins'])->name('admins');
-    Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admins.store');
-    Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
+    // Rute CRUD Admin: Daftar, Simpan Baru, Update (Ubah), dan Hapus (Delete)
+    Route::get('/admins', [AdminController::class, 'admins'])->name('admins'); // Halaman daftar admin
+    Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admins.store'); // Aksi tambah admin baru
+    Route::post('/admins/update/{id}', [AdminController::class, 'updateAdmin'])->name('admins.update'); // Aksi update data admin
+    Route::post('/admins/delete/{id}', [AdminController::class, 'deleteAdmin'])->name('admins.delete'); // Aksi hapus data admin
+    Route::get('/reports', [AdminController::class, 'reports'])->name('reports'); // Halaman laporan penjualan
     
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
     Route::get('/change-password', [AdminController::class, 'changePassword'])->name('change-password');

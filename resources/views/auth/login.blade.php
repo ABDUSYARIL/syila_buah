@@ -28,11 +28,8 @@
             />
             <div class="absolute inset-0 bg-gradient-to-br from-green-dark/85 to-primary/40"></div>
             <div class="relative z-10 flex flex-col justify-end p-12 text-white h-full w-full">
-                <div class="flex items-center gap-3 mb-8 animate-float">
-                    <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-lg">
-                        <span class="material-symbols-rounded text-white">eco</span>
-                    </div>
-                    <span class="font-bold text-2xl tracking-tight">SyilaBuah</span>
+                <div class="mb-8 animate-float">
+                    @include('partials.logo', ['textColor' => 'text-white', 'spanColor' => 'text-white'])
                 </div>
                 <h1 class="text-4xl font-bold leading-tight mb-4 tracking-tight drop-shadow-md">Buah Segar Berkualitas<br />Setiap Hari</h1>
                 <p class="text-white/80 text-base leading-relaxed max-w-md drop-shadow-sm">Dapatkan buah pilihan terbaik langsung dari kebun segar, diantarkan ke pintu rumah Anda.</p>
@@ -55,26 +52,29 @@
         <div class="flex-grow flex items-center justify-center bg-bg-light px-6 py-12">
             <div class="w-full max-w-md">
                 <!-- Logo mobile -->
-                <div class="lg:hidden flex items-center gap-2 mb-8 justify-center">
-                    <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-md">
-                        <span class="material-symbols-rounded text-white">eco</span>
-                    </div>
-                    <span class="font-bold text-xl text-gray-dark tracking-tight">Syila<span class="text-primary">Buah</span></span>
+                <div class="lg:hidden mb-8 flex justify-center">
+                    @include('partials.logo')
                 </div>
 
                 <!-- Form Card -->
                 <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-8 hover:shadow-soft-hover transform hover:-translate-y-1 transition-all duration-300">
-                    <div class="flex items-center gap-2 mb-4">
-                        <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-md">
-                            <span class="material-symbols-rounded text-white text-base">eco</span>
-                        </div>
-                        <span class="font-bold text-lg leading-none tracking-tight">Syila<span class="text-primary">Buah</span></span>
+                    <div class="mb-4">
+                        @include('partials.logo')
                     </div>
                     
                     <h2 class="text-2xl font-bold text-gray-dark tracking-tight">Masuk ke Akun</h2>
                     <p class="text-gray-muted text-sm mb-8 mt-1">Masukkan email dan password Anda.</p>
 
-                    {{-- Notifications --}}
+                    {{-- Blok Notifikasi Status --}}
+                    {{-- Menampilkan pesan sukses registrasi --}}
+                    @if(session('success'))
+                        <div class="mb-4 p-4 rounded-xl bg-green-light border border-primary/20 text-primary font-semibold text-sm flex items-center gap-2 shadow-sm animate-float">
+                            <span class="material-symbols-rounded text-lg">check_circle</span>
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    {{-- Menampilkan pesan error kegagalan login --}}
                     @if(session('error'))
                         <div class="mb-4 p-3 rounded bg-red-50 text-red-700 text-sm border border-red-200">
                             {{ session('error') }}

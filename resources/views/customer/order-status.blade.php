@@ -4,33 +4,29 @@
 
 @section('content')
 @php
+    // Mengambil status pesanan ter-update dari database secara riil
     $status = $order->status ?? 'Menunggu Pembayaran';
+    
+    // Menghitung sisa waktu pembayaran secara riil (15 menit = 900 detik) sejak pesanan dibuat
+    $createdAt = isset($order->created_at) ? \Carbon\Carbon::parse($order->created_at) : now();
+    $diffInSeconds = now()->diffInSeconds($createdAt, false);
+    $remainingSeconds = max(0, 900 - abs($diffInSeconds));
 @endphp
+{{-- Inisialisasi AlpineJS dengan mengaitkan status dan sisa waktu pembayaran secara dinamis --}}
 <div class="max-w-3xl mx-auto px-6 py-8" x-data="{ 
-    currentStatus: '{{ $status }}',
-    countdown: 14 * 60 + 52,
+    currentStatus: '{{ $status }}', // Mengikat status pesanan langsung dari kolom status di database
+    countdown: {{ $remainingSeconds }}, // Mengikat sisa waktu hitung mundur riil dari database
     get formattedTime() {
+        // Memformat sisa detik menjadi format Menit:Detik (MM:SS)
         const mm = String(Math.floor(this.countdown / 60)).padStart(2, '0');
         const ss = String(this.countdown % 60).padStart(2, '0');
         return `${mm}:${ss}`;
     },
     init() {
+        // Melakukan pengurangan hitung mundur setiap 1 detik
         setInterval(() => {
             if (this.countdown > 0) this.countdown--;
         }, 1000);
-
-        // Auto-update status progression every 6 seconds
-        setInterval(() => {
-            if (this.currentStatus === 'Menunggu Pembayaran') {
-                // Keep waiting for payment or trigger to verification
-            } else if (this.currentStatus === 'Menunggu Verifikasi') {
-                this.currentStatus = 'Diproses';
-            } else if (this.currentStatus === 'Diproses') {
-                this.currentStatus = 'Dikirim';
-            } else if (this.currentStatus === 'Dikirim') {
-                this.currentStatus = 'Selesai';
-            }
-        }, 6000);
     }
 }">
     <!-- Header -->
@@ -47,19 +43,7 @@
     <!-- Timeline Wrapper Card -->
     <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-8 space-y-8 hover:shadow-soft-hover transition-all duration-300">
         
-        <!-- Live Status Toggler for Mock Demonstration -->
-        <div class="bg-bg-light rounded-xl p-3 border border-gray-light flex flex-wrap gap-2 items-center justify-center">
-            <span class="text-xs font-bold text-gray-muted uppercase tracking-wider mr-2">Simulasi Status:</span>
-            @foreach(['Menunggu Pembayaran', 'Menunggu Verifikasi', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan'] as $st)
-                <button 
-                    @click="currentStatus = '{{ $st }}'; if('{{ $st }}' === 'Dibatalkan') { alert('Pembayaran melewati batas 15 menit! Pesanan otomatis DIBATALKAN dan stok dikembalikan ke gudang.') }"
-                    class="px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer"
-                    :class="currentStatus === '{{ $st }}' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-gray-muted border-gray-light hover:border-primary/50'"
-                >
-                    {{ $st }}
-                </button>
-            @endforeach
-        </div>
+        {{-- Tampilan status riil dari database. Panel simulasi toggler status dihapus untuk mode produksi --}}
 
         <!-- Countdown Timer (Show only when status is 'Menunggu Pembayaran') -->
         <div x-show="currentStatus === 'Menunggu Pembayaran'" 
@@ -121,13 +105,18 @@
         </div>
     </div>
 
-    <!-- Help Banner -->
+    <!-- Help Banner / Bantuan Layanan Pelanggan -->
+    {{-- Menghubungkan pembeli langsung ke admin WhatsApp dengan format pesan berisi invoice --}}
     <div class="mt-8 bg-white rounded-2xl border border-gray-light p-6 text-center hover:shadow-soft transition-all">
         <h4 class="font-bold text-gray-dark text-sm mb-1">Ada kendala dalam pesanan Anda?</h4>
-        <p class="text-xs text-gray-muted leading-relaxed mb-4">Hubungi layanan pelanggan kami siap membantu 24/7.</p>
-        <button onclick="alert('Membuka chat WhatsApp...')" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-4 py-2 text-xs transition-colors cursor-pointer">
-            <span class="material-symbols-rounded text-sm">support_agent</span> Hubungi Customer Service
-        </button>
+        <p class="text-xs text-gray-muted leading-relaxed mb-4">Hubungi layanan pelanggan kami, kami siap membantu Anda.</p>
+        @php
+            // Menyusun format pesan WhatsApp dinamis
+            $waMessage = rawurlencode("Halo Admin Syila Buah, saya ingin bertanya tentang pesanan saya dengan nomor Invoice: " . ($order->invoice_no ?? '') . ". Mohon bantuannya.");
+        @endphp
+        <a href="https://wa.me/6281234567890?text={{ $waMessage }}" target="_blank" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-5 py-2.5 text-xs transition-all cursor-pointer shadow-sm">
+            <span class="material-symbols-rounded text-sm">support_agent</span> Hubungi Admin (WhatsApp)
+        </a>
     </div>
 </div>
 @endsection

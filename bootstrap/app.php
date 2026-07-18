@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Mendaftarkan middleware 'admin.auth' agar bisa digunakan sebagai pelindung rute admin
+        // Middleware ini memastikan hanya admin yang sudah login dan aktif yang bisa mengakses halaman admin
+        $middleware->alias([
+            'admin.auth' => \App\Http\Middleware\AdminAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

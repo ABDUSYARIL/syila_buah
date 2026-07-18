@@ -21,13 +21,8 @@
     <!-- Navbar -->
     <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-light shadow-soft transition-all duration-300" x-data="{ mobileOpen: false }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">            <!-- Logo -->
-            <a href="{{ (session('role') === 'pelanggan' || session('role') === 'customer') ? route('home') : route('landing') }}" class="flex items-center gap-2 flex-shrink-0 group">
-                <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-6">
-                    <span class="material-symbols-rounded text-white text-lg">eco</span>
-                </div>
-                <span class="font-bold text-gray-dark text-lg leading-none tracking-tight">
-                    Syila<span class="text-primary">Buah</span>
-                </span>
+            <a href="{{ (session('role') === 'pelanggan' || session('role') === 'customer') ? route('home') : route('landing') }}">
+                @include('partials.logo')
             </a>
 
             <!-- Links desktop -->
@@ -49,6 +44,8 @@
             <!-- Right Actions -->
             <div class="hidden md:flex items-center gap-4">
                 @if(request()->routeIs('landing'))
+                    {{-- Tombol Login selalu tampil di landing page dan mengarah ke rute /login --}}
+                    {{-- Logika pengalihan jika sudah login akan ditangani di sisi backend (AuthController@loginPage) --}}
                     <a href="{{ route('login') }}" class="text-sm text-gray-muted hover:text-primary font-semibold transition-colors">Login</a>
                     <a href="{{ route('catalog') }}" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover active:bg-primary-active px-5 py-2.5 text-sm shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 transition-all duration-300">
                         Lihat Produk
@@ -67,7 +64,7 @@
                     <a href="{{ route('profile') }}" class="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-green-light text-gray-dark transition-all duration-300 hover:shadow-soft">
                         <span class="material-symbols-rounded">person</span>
                     </a>
-                    <a href="{{ route('login') }}" class="text-sm text-red-500 font-semibold hover:text-red-700 transition-colors">Keluar</a>
+                    <a href="{{ route('logout') }}" class="text-sm text-red-500 font-semibold hover:text-red-700 transition-colors">Keluar</a>
                 @else
                     <!-- Guest actions -->
                     <a href="{{ route('login') }}" class="text-sm text-gray-muted hover:text-primary font-semibold transition-colors">Masuk</a>
@@ -107,7 +104,7 @@
                 <a href="{{ route('catalog') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Produk</a>
                 <a href="{{ route('history') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Riwayat Pesanan</a>
                 <a href="{{ route('profile') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Profil</a>
-                <a href="{{ route('login') }}" class="block py-2 text-sm text-red-500 font-semibold">Keluar</a>
+                <a href="{{ route('logout') }}" class="block py-2 text-sm text-red-500 font-semibold">Keluar</a>
             @else
                 <a href="{{ route('landing') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Beranda</a>
                 <a href="{{ route('catalog') }}" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Produk</a>
@@ -130,12 +127,7 @@
     <footer class="bg-white border-t border-gray-light text-gray-dark mt-16 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div class="space-y-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-md">
-                        <span class="material-symbols-rounded text-white text-lg">eco</span>
-                    </div>
-                    <span class="font-bold text-lg leading-none tracking-tight">Syila<span class="text-primary">Buah</span></span>
-                </div>
+                @include('partials.logo')
                 <p class="text-sm text-gray-muted leading-relaxed">Buah segar berkualitas premium, langsung dari kebun terpilih ke meja makan Anda.</p>
             </div>
             

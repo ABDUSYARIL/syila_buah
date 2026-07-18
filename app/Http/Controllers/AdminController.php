@@ -21,12 +21,13 @@ class AdminController extends Controller
     {
         $orders = Order::orderBy('created_at', 'desc')->get();
         $products = Product::all();
-        $salesData = ProductData::$salesData;
-        $topProducts = ProductData::$topProducts;
+        $salesData = ProductData::getSalesData('Bulanan');
+        $topProducts = ProductData::getTopProducts('Bulanan');
         $chartColors = ProductData::$CHART_COLORS;
+        $lowStockProducts = Product::where('stock', '<', 50)->orderBy('stock', 'asc')->take(5)->get();
 
         $ordersToday = Order::whereDate('created_at', Carbon::today())->count();
-        $totalRevenue = $orders->sum('total');
+        $totalRevenue = Order::whereNotIn('status', ['Dibatalkan', 'Menunggu Pembayaran'])->sum('total');
         $productsCount = $products->count();
 
         $stats = [
@@ -36,7 +37,7 @@ class AdminController extends Controller
             ['label' => 'Pesanan Hari Ini', 'value' => $ordersToday, 'change' => 'vs kemarin', 'icon' => 'calendar_today', 'color' => 'bg-purple-50 text-purple-600'],
         ];
 
-        return view('admin.dashboard', compact('orders', 'products', 'salesData', 'topProducts', 'chartColors', 'stats'));
+        return view('admin.dashboard', compact('orders', 'products', 'salesData', 'topProducts', 'chartColors', 'stats', 'lowStockProducts'));
     }
 
     public function products(Request $request)
@@ -113,10 +114,39 @@ class AdminController extends Controller
         return redirect()->route('admin.products')->with('success', 'Produk berhasil dihapus!');
     }
 
+    // Fungsi untuk menampilkan halaman Manajemen Stok
     public function stock()
     {
+        // ── AUTO-DELETE: Hapus riwayat log stok yang sudah lebih dari 1 bulan ──
+        // Fitur ini memastikan tabel riwayat tidak terus menumpuk, data lama > 30 hari dihapus otomatis
+        StockHistory::where('created_at', '<', now()->subMonth())->delete();
+
+        // Mengambil data semua produk untuk keperluan dropdown formulir input stok
         $products = Product::all();
-        return view('admin.stock', compact('products'));
+
+        // ── TAB 1: LOG STOK MASUK ──
+        // Menampilkan semua log dengan kuantitas positif (stok masuk / bertambah)
+        $stockMasuk = StockHistory::with('product')
+            ->where('qty', '>', 0)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10, ['*'], 'masuk_page');
+
+        // ── TAB 2: LOG STOK KELUAR ──
+        // Menampilkan semua log dengan kuantitas negatif (stok keluar / berkurang)
+        $stockKeluar = StockHistory::with('product')
+            ->where('qty', '<', 0)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10, ['*'], 'keluar_page');
+
+        // ── TAB 3: STOK SAAT INI ──
+        // Menampilkan ringkasan stok terkini dari setiap produk (langsung dari tabel products)
+        $stockSaatIni = Product::orderBy('name', 'asc')->paginate(10, ['*'], 'saat_ini_page');
+
+        // Tab aktif dari URL parameter (default: masuk)
+        $activeTab = request()->query('tab', 'masuk');
+
+        // Mengirim data ke view halaman Manajemen Stok
+        return view('admin.stock', compact('products', 'stockMasuk', 'stockKeluar', 'stockSaatIni', 'activeTab'));
     }
 
     public function addStock(Request $request)
@@ -187,21 +217,41 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'Penyesuaian opname stok berhasil disimpan!');
     }
 
+    // Fungsi untuk menampilkan halaman Kelola Pesanan dengan fitur paginasi
     public function orders(Request $request)
     {
+        // ── AUTO-DELETE: Hapus pesanan yang sudah lebih dari 1 bulan dan berstatus Selesai/Dibatalkan ──
+        // Hanya pesanan yang sudah final (Selesai atau Dibatalkan) yang akan dihapus otomatis
+        Order::whereIn('status', ['Selesai', 'Dibatalkan'])
+            ->where('created_at', '<', now()->subMonth())
+            ->delete();
+
+        // Mengambil nilai filter pencarian dan status dari parameter URL
         $search = $request->query('search', '');
         $status = $request->query('status', 'Semua');
         
-        $query = Order::with([
-            'user',
-            'payment',
-            'orderItems.product'
-        ])->orderBy('created_at', 'desc');
+        // ── BADGE COUNT: Hitung jumlah pesanan per status untuk ditampilkan sebagai notif angka ──
+        // Diambil secara efisien dengan groupBy tanpa memuat semua data
+        $statusCounts = Order::selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+        // Tambahkan total 'Semua' sebagai jumlah keseluruhan
+        $statusCounts['Semua'] = array_sum($statusCounts);
 
+        // Membangun query pesanan beserta relasi pengguna, pembayaran, dan item pesanan
+        $query = Order::with([
+            'user',       // Relasi ke data pengguna/pelanggan
+            'payment',    // Relasi ke data pembayaran
+            'orderItems.product' // Relasi ke item pesanan beserta produknya
+        ])->orderBy('created_at', 'desc'); // Urutkan dari yang terbaru
+
+        // Terapkan filter status jika bukan 'Semua'
         if ($status !== 'Semua') {
             $query->where('status', $status);
         }
 
+        // Terapkan filter pencarian berdasarkan nomor invoice atau nama pelanggan
         if (!empty($search)) {
             $query->where(function($q) use ($search) {
                 $q->where('invoice_no', 'like', '%' . $search . '%')
@@ -211,75 +261,135 @@ class AdminController extends Controller
             });
         }
 
-        $orders = $query->get();
-
-        // Transform into arrays matching view expects
-        $orders = $orders->map(function($o) {
+        // Mengambil data pesanan dengan paginasi — ditampilkan 10 pesanan per halaman
+        // Menggunakan through() agar transformasi data tidak merusak objek paginasi Laravel
+        $orders = $query->paginate(10)->through(function($o) {
             return [
-                'id' => $o->invoice_no,
-                'customer' => $o->user->name ?? 'Pelanggan',
-                'date' => $o->created_at->format('d M Y'),
-                'total' => $o->total,
-                'payStatus' => $o->payment->payment_status ?? 'Menunggu',
-                'proof' => $o->payment->proof_of_payment ?? null,
-                'status' => $o->status,
-                'address' => $o->shipping_address,
-                'method' => $o->shipping_method,
-                'items' => $o->orderItems->map(function($item){
-            return [
-                'product' => $item->product->name,
-                'qty' => $item->qty,
-                'price' => $item->price,
-                'subtotal' => $item->qty * $item->price,
-            ];
-        })->toArray(),
+                'id'       => $o->invoice_no,           // Nomor invoice pesanan
+                'customer' => $o->user->name ?? 'Pelanggan', // Nama pelanggan
+                'date'     => $o->created_at->format('d M Y'), // Tanggal pesanan
+                'total'    => $o->total,                // Total harga
+                'payStatus'=> $o->payment->payment_status ?? 'Menunggu', // Status pembayaran
+                'proof'    => $o->payment->proof_of_payment ?? null,     // Path bukti pembayaran
+                'status'   => $o->status,               // Status pesanan (Diproses, Dikirim, dll)
+                'address'  => $o->shipping_address,     // Alamat pengiriman
+                'method'   => $o->shipping_method,      // Metode pengiriman
+                // Detail item yang dipesan beserta harga dan subtotal masing-masing
+                'items'    => $o->orderItems->map(function($item) {
+                    return [
+                        'product'  => $item->product->name ?? '-',
+                        'qty'      => $item->qty,
+                        'price'    => $item->price,
+                        'subtotal' => $item->qty * $item->price,
+                    ];
+                })->toArray(),
             ];
         });
 
-        return view('admin.orders', compact('orders', 'search', 'status'));
+        // Kirim data pesanan, kata kunci pencarian, status filter, dan jumlah badge ke view
+        return view('admin.orders', compact('orders', 'search', 'status', 'statusCounts'));
     }
 
+    // Fungsi untuk menampilkan daftar admin
     public function admins()
     {
+        // Mengambil semua data pengguna yang memiliki role 'admin'
         $admins = User::where('role', 'admin')->get();
         
-        // Transform into array matching view expectations
+        // Melakukan pemetaan data agar sesuai dengan variabel tampilan di view
         $admins = $admins->map(function($a) {
             return [
+                'id' => $a->id, // MENYERTAKAN ID DARI DATABASE agar tombol Edit/Hapus berfungsi akurat
                 'name' => $a->name,
                 'email' => $a->email,
                 'role' => ucfirst($a->role) . ' Admin',
                 'phone' => $a->phone ?? '-',
-                'status' => ucfirst($a->status),
+                'status' => $a->status, // Mengirim status asli ('aktif' / 'tidak aktif') ke view
                 'lastLogin' => $a->updated_at->format('d M Y H:i')
             ];
         });
 
+        // Mengirim daftar admin ke view admin/admins
         return view('admin.admins', compact('admins'));
     }
 
+    // Fungsi untuk menyimpan data admin baru (Create)
     public function storeAdmin(Request $request)
     {
+        // Validasi input data admin baru
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email',
-            'phone' => 'nullable|string|max:30',
-            'password' => 'required|string|min:8|confirmed',
-            'status' => 'required|in:aktif,tidak aktif',
+            'name' => 'required|string|max:255', // Nama wajib diisi, maksimal 255 karakter
+            'email' => 'required|email|max:255|unique:users,email', // Email wajib diisi, valid, unik di tabel users
+            'phone' => 'nullable|string|max:30', // Nomor HP opsional, teks, maksimal 30 karakter
+            'password' => 'required|string|min:8|confirmed', // Password wajib diisi, minimal 8 karakter, harus sama dengan kolom konfirmasi
+            'status' => 'required|in:aktif,tidak aktif', // Status wajib diisi (aktif/tidak aktif)
         ], [
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
+        // Menyimpan data admin baru ke database
         User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
-            'password' => Hash::make($data['password']),
-            'role' => 'admin',
+            'password' => Hash::make($data['password']), // Enkripsi password sebelum disimpan
+            'role' => 'admin', // Mengunci role sebagai admin
             'status' => $data['status'],
         ]);
 
+        // Mengalihkan kembali dengan rute admin.admins disertai pesan flash sukses
         return redirect()->route('admin.admins')->with('success', 'Admin baru berhasil ditambahkan.');
+    }
+
+    // Fungsi untuk memperbarui data admin (Update)
+    public function updateAdmin(Request $request, $id)
+    {
+        // Mencari data admin berdasarkan id di tabel users
+        $admin = User::findOrFail($id);
+        
+        // Validasi input data admin
+        $data = $request->validate([
+            'name' => 'required|string|max:255', // Nama wajib diisi, maksimal 255 karakter
+            'email' => 'required|email|max:255|unique:users,email,' . $id, // Email unik kecuali miliknya sendiri
+            'phone' => 'nullable|string|max:30', // Nomor HP opsional
+            'password' => 'nullable|string|min:8|confirmed', // Password opsional saat edit (diisi hanya jika mau mengganti password)
+            'status' => 'required|in:aktif,tidak aktif', // Status wajib diisi
+        ], [
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ]);
+
+        // Memperbarui atribut-atribut data admin
+        $admin->name = $data['name'];
+        $admin->email = $data['email'];
+        $admin->phone = $data['phone'] ?? null;
+        $admin->status = $data['status'];
+        
+        // Hanya mengubah password jika password baru diisi oleh admin
+        if (!empty($data['password'])) {
+            $admin->password = Hash::make($data['password']);
+        }
+        
+        $admin->save(); // Menyimpan perubahan data admin ke database
+
+        // Mengalihkan kembali dengan rute admin.admins disertai pesan flash sukses
+        return redirect()->route('admin.admins')->with('success', 'Data admin berhasil diperbarui.');
+    }
+
+    // Fungsi untuk menghapus data admin (Delete)
+    public function deleteAdmin($id)
+    {
+        // Mencari data admin berdasarkan id di tabel users
+        $admin = User::findOrFail($id);
+        
+        // Mencegah penghapusan akun milik sendiri demi alasan keamanan
+        if ($admin->id === Auth::id()) {
+            return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
+        $admin->delete(); // Menghapus data admin dari database
+
+        // Mengalihkan kembali dengan rute admin.admins disertai pesan flash sukses
+        return redirect()->route('admin.admins')->with('success', 'Admin berhasil dihapus.');
     }
 
     public function reports(Request $request)
@@ -320,21 +430,52 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'Pesanan ' . $order->invoice_no . ' diterima dan diproses.');
     }
 
+    // Fungsi untuk memproses penolakan / pembatalan pesanan oleh admin
     public function rejectOrder($invoice)
     {
-        $order = Order::where('invoice_no', $invoice)->firstOrFail();
+        // Mencari data pesanan berdasarkan invoice beserta relasi item dan produk secara riil
+        $order = Order::with('orderItems.product')->where('invoice_no', $invoice)->firstOrFail();
 
-        // Update order status to Dibatalkan
-        $order->status = 'Dibatalkan';
-        $order->save();
+        // Hanya memproses jika status belum Dibatalkan
+        if ($order->status !== 'Dibatalkan') {
+            \DB::beginTransaction(); // Memulai transaksi database agar operasi atomik/aman
+            try {
+                // Mengubah status pesanan menjadi Dibatalkan
+                $order->status = 'Dibatalkan';
+                $order->save();
 
-        // Optionally update payment status
-        if ($order->payment) {
-            $order->payment->payment_status = 'Dibatalkan';
-            $order->payment->save();
+                // Mengubah status pembayaran pesanan menjadi Dibatalkan
+                if ($order->payment) {
+                    $order->payment->payment_status = 'Dibatalkan';
+                    $order->payment->save();
+                }
+
+                // Mengembalikan kuantitas stok produk ke gudang (karena batal membeli) dan mencatat ke log
+                foreach ($order->orderItems as $item) {
+                    $product = $item->product;
+                    if ($product) {
+                        $product->stock += $item->qty; // Mengembalikan stok produk
+                        $product->save();
+
+                        // Mencatat aktivitas pembatalan/pengembalian stok ke tabel riwayat log stok
+                        StockHistory::create([
+                            'product_id' => $product->id,
+                            'reference_id' => $order->id,
+                            'reference_type' => 'Order',
+                            'qty' => $item->qty, // Jumlah positif karena stok bertambah kembali
+                            'transaction_type' => 'Pembatalan'
+                        ]);
+                    }
+                }
+                
+                \DB::commit(); // Menyimpan seluruh perubahan jika berhasil
+            } catch (\Exception $e) {
+                \DB::rollBack(); // Membatalkan seluruh perubahan jika terjadi kesalahan/gagal
+                return redirect()->back()->with('error', 'Gagal membatalkan pesanan: ' . $e->getMessage());
+            }
         }
 
-        return redirect()->back()->with('success', 'Pesanan ' . $order->invoice_no . ' dibatalkan.');
+        return redirect()->back()->with('success', 'Pesanan ' . $order->invoice_no . ' berhasil dibatalkan dan stok dikembalikan.');
     }
 
     public function shipOrder($invoice)

@@ -17,14 +17,14 @@
                 Tersedia berbagai pilihan buah lokal dan impor dengan kualitas terbaik yang dapat dipesan secara online.
             </p>
             <div class="pt-2">
-                <a href="{{ route('catalog') }}" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover active:bg-primary-active px-6 py-3 text-base shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 transition-all duration-300">
+                <a href="{{ route('catalog') }}" class="inline-flex items-center justify-center gap-2 font-bold rounded-xl bg-primary text-white btn-3d px-6 py-3 text-base">
                     Lihat Produk <span class="material-symbols-rounded text-lg">arrow_forward</span>
                 </a>
             </div>
         </div>
         <div class="flex justify-center relative">
             <div class="absolute -inset-4 bg-primary/5 rounded-full blur-3xl opacity-30"></div>
-            <div class="w-full max-w-md aspect-square bg-white rounded-3xl p-6 shadow-soft hover:shadow-soft-hover transition-all duration-500 animate-float">
+            <div class="w-full max-w-md aspect-square glass-premium rounded-3xl p-6 shadow-3d hover:shadow-3d-hover transform hover:scale-[1.03] transition-all duration-500 animate-float">
                 <img
                     src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&h=600&fit=crop&auto=format"
                     alt="Keranjang Buah Segar"
@@ -40,7 +40,7 @@
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-light text-primary">
                 <span class="material-symbols-rounded text-sm">store</span> Tentang Syila Buah
             </span>
-            <h2 class="text-3xl font-extrabold text-gray-dark tracking-tight">Menyediakan Kesegaran Terbaik</h2>
+            <h2 class="text-3xl font-extrabold text-gray-dark tracking-tight text-gradient-green">Menyediakan Kesegaran Terbaik</h2>
             <p class="text-sm text-gray-muted leading-relaxed">
                 Syila Buah adalah toko buah segar premium terpercaya. Kami mendedikasikan diri untuk menyediakan buah-buahan lokal dan impor berkualitas unggul dengan sistem penyimpanan khusus untuk mempertahankan nutrisi buah tetap utuh sampai ke tangan Anda.
             </p>
@@ -53,7 +53,7 @@
                 ['title' => 'Produk Berkualitas', 'desc' => 'Produk disimpan dengan standar kualitas yang baik.', 'icon' => 'inventory_2', 'color' => 'bg-blue-50 text-blue-600'],
                 ['title' => 'Pemesanan Mudah', 'desc' => 'Belanja buah secara online kapan saja.', 'icon' => 'shopping_cart', 'color' => 'bg-[#F3E5F5] text-purple-600']
             ] as $k)
-                <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transform hover:-translate-y-1.5 transition-all duration-300 flex flex-col items-center text-center">
+                <div class="card-3d p-6 flex flex-col items-center text-center rounded-2xl">
                     <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 {{ $k['color'] }} shadow-sm">
                         <span class="material-symbols-rounded text-2xl">{{ $k['icon'] }}</span>
                     </div>
@@ -77,7 +77,7 @@
                 <p class="text-sm text-gray-muted leading-relaxed">
                     Rasakan pengalaman memilih buah segar secara langsung dengan mengunjungi outlet fisik Syila Buah. Staff kami siap membantu merekomendasikan pilihan buah terbaik untuk konsumsi harian maupun kebutuhan hampers Anda.
                 </p>
-                <div class="bg-white rounded-2xl p-6 border border-gray-light shadow-soft hover:shadow-soft-hover transition-all duration-300">
+                <div class="card-3d p-6 rounded-2xl">
                     <h4 class="font-bold text-gray-dark text-sm flex items-center gap-2">
                         <span class="material-symbols-rounded text-primary text-lg">schedule</span> Jam Operasional
                     </h4>
@@ -89,7 +89,7 @@
                 </div>
             </div>
             
-            <div id="kontak" class="bg-white rounded-3xl p-8 border border-gray-light shadow-soft hover:shadow-soft-hover transition-all duration-500 space-y-6">
+            <div id="kontak" class="card-3d p-8 rounded-3xl space-y-6">
                 <h3 class="font-extrabold text-gray-dark text-lg border-b border-bg-light pb-4">Kontak & Lokasi</h3>
                 
                 <div class="space-y-4">

@@ -3,7 +3,7 @@
 @section('title', 'Ganti Password Admin - Syila Buah')
 
 @section('content')
-<div class="max-w-lg" x-data="{ show: { old: false, new: false, confirm: false } }">
+<div class="max-w-lg" x-data="{ show: { current: false, new: false, confirm: false } }">
     <a href="{{ route('admin.profile') }}" class="inline-flex items-center gap-1.5 text-sm text-gray-muted hover:text-primary mb-6 transition-colors">
         <span class="material-symbols-rounded text-base">arrow_back</span> Profil Admin
     </a>

@@ -203,5 +203,136 @@ class DatabaseSeeder extends Seeder
                 'transaction_type' => 'Stok Masuk'
             ]);
         }
+
+        // 5. Seed extra customers
+        $pelanggan2 = User::create([
+            'name' => 'Budi Santoso',
+            'email' => 'budi@email.com',
+            'phone' => '085678901234',
+            'address' => 'Jl. Cempaka No. 5, Bogor',
+            'password' => Hash::make('pelanggan123'),
+            'role' => 'pelanggan',
+            'status' => 'aktif',
+        ]);
+
+        $pelanggan3 = User::create([
+            'name' => 'Siti Nurhaliza',
+            'email' => 'siti@email.com',
+            'phone' => '081233445566',
+            'address' => 'Jl. Anggrek No. 8, Jakarta',
+            'password' => Hash::make('pelanggan123'),
+            'role' => 'pelanggan',
+            'status' => 'aktif',
+        ]);
+
+        $users = [$pelanggan, $pelanggan2, $pelanggan3];
+        $products = Product::all();
+
+        // 6. Seed historical orders (yearly: 2022, 2023, 2024, 2025)
+        $years = [2022, 2023, 2024, 2025];
+        $orderCount = 1;
+        foreach ($years as $year) {
+            // Seed 8 orders per year
+            for ($i = 0; $i < 8; $i++) {
+                $user = $users[array_rand($users)];
+                $date = \Carbon\Carbon::create($year, rand(1, 12), rand(1, 28), rand(9, 18), rand(0, 59));
+                self::createMockOrder($user, $products, $date, $orderCount++);
+            }
+        }
+
+        // 7. Seed monthly orders for current year (2026) up to current month (July)
+        $currentYear = 2026;
+        for ($month = 1; $month <= 7; $month++) {
+            // Seed 5 orders per month
+            for ($i = 0; $i < 5; $i++) {
+                $user = $users[array_rand($users)];
+                $date = \Carbon\Carbon::create($currentYear, $month, rand(1, 28), rand(9, 18), rand(0, 59));
+                self::createMockOrder($user, $products, $date, $orderCount++);
+            }
+        }
+
+        // 8. Seed daily orders for current week (July 13, 2026 to July 19, 2026)
+        $startOfWeek = \Carbon\Carbon::now()->startOfWeek(); // Monday
+        for ($d = 0; $d < 7; $d++) {
+            $dayDate = $startOfWeek->copy()->addDays($d);
+            if ($dayDate->isAfter(\Carbon\Carbon::now())) {
+                continue;
+            }
+            // Seed 3 orders per day
+            for ($i = 0; $i < 3; $i++) {
+                $user = $users[array_rand($users)];
+                $date = $dayDate->copy()->setHour(rand(9, 20))->setMinute(rand(0, 59));
+                self::createMockOrder($user, $products, $date, $orderCount++);
+            }
+        }
+    }
+
+    private static function createMockOrder($user, $products, $date, $orderId)
+    {
+        $invoiceNo = 'SB-' . $date->format('ymd') . '-' . sprintf('%03d', $orderId);
+        $shippingMethod = (rand(0, 1) === 0) ? 'Diantar' : 'Ambil di Tempat';
+        $shippingCost = ($shippingMethod === 'Diantar') ? 15000 : 0;
+        
+        $subtotal = 0;
+        $itemsCount = rand(1, 3);
+        $selectedProducts = $products->random($itemsCount);
+
+        // We create the order first
+        $order = \App\Models\Order::create([
+            'user_id' => $user->id,
+            'invoice_no' => $invoiceNo,
+            'shipping_address' => $user->address ?? 'Jl. Melati No. 12, Bandung',
+            'shipping_method' => $shippingMethod,
+            'shipping_cost' => $shippingCost,
+            'subtotal' => 0, // Will update later
+            'total' => 0, // Will update later
+            'status' => 'Selesai', // Seed completed orders so they count in reports
+            'notes' => 'Seeded transaction.',
+            'created_at' => $date,
+            'updated_at' => $date
+        ]);
+
+        foreach ($selectedProducts as $product) {
+            $qty = rand(1, 3);
+            $price = $product->price;
+            $subtotal += $price * $qty;
+
+            \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'qty' => $qty,
+                'price' => $price,
+                'created_at' => $date,
+                'updated_at' => $date
+            ]);
+
+            // Create stock history log
+            \App\Models\StockHistory::create([
+                'product_id' => $product->id,
+                'reference_id' => $order->id,
+                'reference_type' => 'Order',
+                'qty' => -$qty,
+                'transaction_type' => 'Checkout',
+                'created_at' => $date,
+                'updated_at' => $date
+            ]);
+        }
+
+        $total = $subtotal + $shippingCost;
+        $order->update([
+            'subtotal' => $subtotal,
+            'total' => $total
+        ]);
+
+        // Create Payment record
+        \App\Models\Payment::create([
+            'order_id' => $order->id,
+            'method' => (rand(0, 1) === 0) ? 'QRIS' : 'Transfer Bank',
+            'proof_of_payment' => 'payments/seeded_proof.jpg',
+            'payment_status' => 'Lunas',
+            'payment_date' => $date,
+            'created_at' => $date,
+            'updated_at' => $date
+        ]);
     }
 }

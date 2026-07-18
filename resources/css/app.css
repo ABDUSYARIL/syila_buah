@@ -63,3 +63,63 @@
     line-height: 1;
   }
 }
+
+/* Premium 3D & Animation Utilities */
+.card-3d {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-3d);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.card-3d:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-3d-hover);
+  border-color: rgba(76, 175, 80, 0.25);
+}
+
+.btn-3d {
+  position: relative;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 0px var(--color-primary-active), 0 8px 15px rgba(76, 175, 80, 0.2);
+}
+
+.btn-3d:hover {
+  transform: translateY(1px);
+  box-shadow: 0 3px 0px var(--color-primary-active), 0 6px 12px rgba(76, 175, 80, 0.25);
+}
+
+.btn-3d:active {
+  transform: translateY(4px);
+  box-shadow: 0 0px 0px var(--color-primary-active), 0 2px 4px rgba(76, 175, 80, 0.1);
+}
+
+.btn-3d-accent {
+  position: relative;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 0px var(--color-accent-active), 0 8px 15px rgba(255, 152, 0, 0.2);
+}
+
+.btn-3d-accent:hover {
+  transform: translateY(1px);
+  box-shadow: 0 3px 0px var(--color-accent-active), 0 6px 12px rgba(255, 152, 0, 0.25);
+}
+
+.btn-3d-accent:active {
+  transform: translateY(4px);
+  box-shadow: 0 0px 0px var(--color-accent-active), 0 2px 4px rgba(255, 152, 0, 0.1);
+}
+
+.glass-premium {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+}
+
+.text-gradient-green {
+  background: linear-gradient(135deg, var(--color-green-dark), var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

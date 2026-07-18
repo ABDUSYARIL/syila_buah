@@ -6,7 +6,8 @@
 <div>
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-dark">Kelola Pesanan</h1>
-        <p class="text-sm text-gray-muted">{{ count($orders) }} total pesanan</p>
+        {{-- Menampilkan total keseluruhan pesanan dari database, bukan hanya di halaman ini --}}
+        <p class="text-sm text-gray-muted">{{ $orders->total() }} total pesanan</p>
     </div>
 
     @if(session('success'))
@@ -32,10 +33,18 @@
             
             <div class="flex gap-2 flex-wrap">
                 @foreach(['Semua', 'Menunggu Pembayaran', 'Menunggu Verifikasi', 'Diproses', 'Dikirim', 'Selesai'] as $s)
+                    {{-- Setiap tombol filter dilengkapi badge angka merah kecil yang menunjukkan jumlah pesanan di status tersebut --}}
                     <a href="{{ route('admin.orders', ['status' => $s, 'search' => $search]) }}" 
-                       class="px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all border block select-none
+                       class="relative px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all border block select-none
                         {{ $status === $s ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white border-gray-light text-gray-muted hover:border-primary hover:text-primary' }}">
                         {{ $s }}
+                        {{-- Badge notifikasi angka — hanya tampil jika ada pesanan di status ini dan bukan filter 'Semua' atau 'Selesai' --}}
+                        @php $count = $statusCounts[$s] ?? 0; @endphp
+                        @if($count > 0 && $s !== 'Semua' && $s !== 'Selesai')
+                            <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center px-1 shadow-sm">
+                                {{ $count > 99 ? '99+' : $count }}
+                            </span>
+                        @endif
                     </a>
                 @endforeach
             </div>
@@ -147,6 +156,42 @@
                 </tbody>
             </table>
         </div>
+
+        {{-- Komponen navigasi paginasi untuk berpindah halaman pesanan --}}
+        {{-- Hanya tampil jika total pesanan lebih dari 10 (1 halaman) --}}
+        @if($orders->hasPages())
+            <div class="px-6 py-4 border-t border-bg-light flex items-center justify-between gap-4 flex-wrap">
+                {{-- Info jumlah pesanan yang sedang ditampilkan --}}
+                <p class="text-xs text-gray-muted">
+                    Menampilkan {{ $orders->firstItem() }}–{{ $orders->lastItem() }} dari {{ $orders->total() }} pesanan
+                </p>
+                {{-- Tombol navigasi antar halaman --}}
+                <div class="flex items-center gap-1">
+                    {{-- Tombol Sebelumnya --}}
+                    @if($orders->onFirstPage())
+                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-bg-light text-gray-muted cursor-not-allowed select-none">‹ Sebelumnya</span>
+                    @else
+                        <a href="{{ $orders->previousPageUrl() }}&status={{ $status }}&search={{ $search }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-light text-gray-dark hover:border-primary hover:text-primary transition-all">‹ Sebelumnya</a>
+                    @endif
+
+                    {{-- Nomor-nomor halaman --}}
+                    @foreach($orders->getUrlRange(1, $orders->lastPage()) as $page => $url)
+                        @if($page == $orders->currentPage())
+                            <span class="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-primary text-white shadow-soft">{{ $page }}</span>
+                        @else
+                            <a href="{{ $url }}&status={{ $status }}&search={{ $search }}" class="w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center bg-white border border-gray-light text-gray-muted hover:border-primary hover:text-primary transition-all">{{ $page }}</a>
+                        @endif
+                    @endforeach
+
+                    {{-- Tombol Berikutnya --}}
+                    @if($orders->hasMorePages())
+                        <a href="{{ $orders->nextPageUrl() }}&status={{ $status }}&search={{ $search }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-light text-gray-dark hover:border-primary hover:text-primary transition-all">Berikutnya ›</a>
+                    @else
+                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-bg-light text-gray-muted cursor-not-allowed select-none">Berikutnya ›</span>
+                    @endif
+                </div>
+            </div>
+        @endif
     </div>
 </div>
 <!-- Modal Detail -->

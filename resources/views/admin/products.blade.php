@@ -39,10 +39,22 @@
         this.editStock = p.stock;
         this.editImageUrl = p.image || '';
         
-        // DIPERBAIKI: Mengecek apakah path menggunakan /storage/, URL http, atau id unik Unsplash
-        this.imagePreview = p.image ? 
-            (p.image.startsWith('http') || p.image.startsWith('/') ? p.image : 'https://images.unsplash.com/photo-' + p.image + '?w=150&h=150&fit=crop&auto=format') 
-            : '';
+        // Menentukan pratinjau gambar berdasarkan tipe path yang tersimpan di database:
+        // 1. Jika URL eksternal (http/https) → gunakan langsung
+        // 2. Jika path lokal /storage/... → gabungkan dengan base URL aplikasi
+        // 3. Jika ID Unsplash → bangun URL Unsplash
+        if (!p.image) {
+            this.imagePreview = '';
+        } else if (p.image.startsWith('http://') || p.image.startsWith('https://')) {
+            // URL eksternal, langsung pakai
+            this.imagePreview = p.image;
+        } else if (p.image.startsWith('/storage/') || p.image.startsWith('storage/')) {
+            // Path lokal Laravel storage — gabungkan dengan APP_URL agar muncul dengan benar
+            this.imagePreview = '{{ rtrim(config("app.url"), "/") }}' + (p.image.startsWith('/') ? '' : '/') + p.image;
+        } else {
+            // ID foto Unsplash
+            this.imagePreview = 'https://images.unsplash.com/photo-' + p.image + '?w=150&h=150&fit=crop&auto=format';
+        }
             
         this.modalOpen = true;
     }

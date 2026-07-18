@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+
 class ProductData
 {
     public static $PRODUCTS = [
@@ -267,20 +273,137 @@ class ProductData
 
     public static function getSalesData(string $period = 'Bulanan')
     {
+        $validStatuses = ['Menunggu Verifikasi', 'Diproses', 'Dikirim', 'Selesai'];
+
         if ($period === 'Harian') {
-            return self::$dailySalesData;
+            $startOfWeek = Carbon::now()->startOfWeek();
+            $endOfWeek = Carbon::now()->endOfWeek();
+
+            $sales = Order::whereIn('status', $validStatuses)
+                ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+                ->select(
+                    DB::raw('DAYOFWEEK(created_at) as day_num'),
+                    DB::raw('SUM(total) as revenue'),
+                    DB::raw('COUNT(id) as orders')
+                )
+                ->groupBy('day_num')
+                ->get()
+                ->keyBy('day_num');
+
+            $days = [
+                2 => 'Sen',
+                3 => 'Sel',
+                4 => 'Rab',
+                5 => 'Kam',
+                6 => 'Jum',
+                7 => 'Sab',
+                1 => 'Min'
+            ];
+
+            $data = [];
+            foreach ($days as $dayNum => $dayName) {
+                $record = $sales->get($dayNum);
+                $data[] = [
+                    'month' => $dayName,
+                    'revenue' => $record ? (float)$record->revenue : 0,
+                    'orders' => $record ? (int)$record->orders : 0
+                ];
+            }
+            return $data;
         }
 
         if ($period === 'Tahunan') {
-            return self::$yearlySalesData;
+            $currentYear = Carbon::now()->year;
+            $startYear = $currentYear - 4;
+
+            $sales = Order::whereIn('status', $validStatuses)
+                ->whereYear('created_at', '>=', $startYear)
+                ->select(
+                    DB::raw('YEAR(created_at) as year'),
+                    DB::raw('SUM(total) as revenue'),
+                    DB::raw('COUNT(id) as orders')
+                )
+                ->groupBy('year')
+                ->get()
+                ->keyBy('year');
+
+            $data = [];
+            for ($y = $startYear; $y <= $currentYear; $y++) {
+                $record = $sales->get($y);
+                $data[] = [
+                    'month' => (string)$y,
+                    'revenue' => $record ? (float)$record->revenue : 0,
+                    'orders' => $record ? (int)$record->orders : 0
+                ];
+            }
+            return $data;
         }
 
-        return self::$salesData;
+        // Bulanan (current year)
+        $currentYear = Carbon::now()->year;
+        $sales = Order::whereIn('status', $validStatuses)
+            ->whereYear('created_at', $currentYear)
+            ->select(
+                DB::raw('MONTH(created_at) as month_num'),
+                DB::raw('SUM(total) as revenue'),
+                DB::raw('COUNT(id) as orders')
+            )
+            ->groupBy('month_num')
+            ->get()
+            ->keyBy('month_num');
+
+        $months = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun',
+            7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
+        ];
+
+        $data = [];
+        foreach ($months as $num => $name) {
+            $record = $sales->get($num);
+            $data[] = [
+                'month' => $name,
+                'revenue' => $record ? (float)$record->revenue : 0,
+                'orders' => $record ? (int)$record->orders : 0
+            ];
+        }
+        return $data;
     }
 
     public static function getTopProducts(string $period = 'Bulanan')
     {
-        return self::$topProducts;
+        $validStatuses = ['Menunggu Verifikasi', 'Diproses', 'Dikirim', 'Selesai'];
+
+        $query = OrderItem::join('products', 'order_items.product_id', '=', 'products.id')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereIn('orders.status', $validStatuses);
+
+        if ($period === 'Harian') {
+            $startOfWeek = Carbon::now()->startOfWeek();
+            $endOfWeek = Carbon::now()->endOfWeek();
+            $query->whereBetween('orders.created_at', [$startOfWeek, $endOfWeek]);
+        } elseif ($period === 'Tahunan') {
+            $query->whereYear('orders.created_at', '>=', Carbon::now()->year - 4);
+        } else {
+            $query->whereYear('orders.created_at', Carbon::now()->year);
+        }
+
+        $topProducts = $query->select(
+            'products.name',
+            DB::raw('SUM(order_items.qty) as sold'),
+            DB::raw('SUM(order_items.qty * order_items.price) as revenue')
+        )
+        ->groupBy('products.id', 'products.name')
+        ->orderBy('sold', 'desc')
+        ->take(5)
+        ->get();
+
+        return $topProducts->map(function($p) {
+            return [
+                'name' => $p->name,
+                'sold' => (int)$p->sold,
+                'revenue' => (float)$p->revenue
+            ];
+        })->toArray();
     }
 
     public static function rp($n)
@@ -288,14 +411,32 @@ class ProductData
         return 'Rp ' . number_format($n, 0, ',', '.');
     }
 
+    // Fungsi pembantu untuk menghasilkan URL gambar produk yang tepat
+    // Mendukung gambar dari Unsplash (berupa ID foto), URL eksternal, atau file upload lokal di storage Laravel
     public static function img($id, $w = 400, $h = 400)
     {
+        // Jika tidak ada gambar, gunakan gambar default dari Unsplash
         if (empty($id)) {
             return "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w={$w}&h={$h}&fit=crop&auto=format";
         }
-        if (str_starts_with($id, 'http://') || str_starts_with($id, 'https://') || str_starts_with($id, '/storage') || str_starts_with($id, 'storage/')) {
+        
+        // Jika gambar adalah URL eksternal (http/https), kembalikan apa adanya
+        if (str_starts_with($id, 'http://') || str_starts_with($id, 'https://')) {
             return $id;
         }
+
+        // Jika gambar adalah path lokal yang tersimpan di storage Laravel (/storage/... atau storage/...)
+        // Gunakan fungsi asset() agar URL gambar selalu tepat relatif terhadap domain aplikasi
+        if (str_starts_with($id, '/storage/')) {
+            // Hapus awalan "/" agar asset() dapat memproses path dengan benar
+            return asset(ltrim($id, '/'));
+        }
+        
+        if (str_starts_with($id, 'storage/')) {
+            return asset($id);
+        }
+        
+        // Jika yang disimpan adalah ID foto Unsplash, bangun URL Unsplash lengkap
         return "https://images.unsplash.com/photo-{$id}?w={$w}&h={$h}&fit=crop&auto=format";
     }
 

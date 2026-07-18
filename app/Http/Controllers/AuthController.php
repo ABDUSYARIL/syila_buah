@@ -11,6 +11,19 @@ class AuthController extends Controller
 {
     public function loginPage()
     {
+        // Jika pengguna sudah login sebagai pelanggan, langsung arahkan ke beranda pelanggan
+        // Sehingga tidak perlu login ulang jika sudah ada sesi aktif
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user->role === 'admin') {
+                // Admin yang sudah login langsung diarahkan ke dashboard admin
+                return redirect()->route('admin.dashboard');
+            }
+            // Pelanggan yang sudah login langsung diarahkan ke halaman home pelanggan
+            return redirect()->route('home');
+        }
+
+        // Menyimpan URL halaman sebelumnya agar setelah login bisa diarahkan kembali
         $prev = url()->previous();
         if ($prev && !str_contains($prev, '/login') && !str_contains($prev, '/register')) {
             session(['url.intended' => $prev]);
@@ -86,28 +99,32 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
+    // Fungsi untuk memproses pendaftaran akun baru
     public function register(Request $request)
     {
+        // Validasi input data pendaftaran dari form pendaftaran
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
+            'name' => 'required|string|max:255', // Nama lengkap wajib diisi, berupa teks, maksimal 255 karakter
+            'email' => 'required|string|email|max:255|unique:users', // Email wajib diisi, format email valid, maksimal 255 karakter, dan harus unik (belum terdaftar)
+            'password' => 'required|string|min:8', // Password wajib diisi, berupa teks, minimal 8 karakter
+            'phone' => 'required|string|max:20', // Nomor HP wajib diisi, berupa teks, maksimal 20 karakter
+            'address' => 'required|string', // Alamat lengkap wajib diisi dan berupa teks
         ]);
 
+        // Simpan data pengguna baru ke dalam database tabel users
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'pelanggan',
-            'status' => 'aktif',
+            'name' => $request->name, // Menyimpan nama lengkap pengguna
+            'email' => $request->email, // Menyimpan email pengguna
+            'phone' => $request->phone, // Menyimpan nomor HP pengguna ke dalam kolom phone
+            'address' => $request->address, // Menyimpan alamat lengkap pengguna ke dalam kolom address
+            'password' => Hash::make($request->password), // Mengenkripsi password pengguna sebelum disimpan menggunakan Hash bcrypt
+            'role' => 'pelanggan', // Menetapkan peran (role) default sebagai pelanggan
+            'status' => 'aktif', // Menetapkan status akun aktif secara default
         ]);
 
-        Auth::login($user);
-
-        session(['role' => $user->role, 'username' => $user->name]);
-        
-        $intended = session()->pull('url.intended', route('home'));
-        return redirect()->to($intended);
+        // Sesuai permintaan, tidak langsung login otomatis setelah mendaftar
+        // Mengalihkan pengguna kembali ke halaman login dengan menyertakan pesan sukses dalam flash session
+        return redirect()->route('login')->with('success', 'Pendaftaran akun berhasil! Silakan masuk menggunakan akun baru Anda.');
     }
 
     public function logout()

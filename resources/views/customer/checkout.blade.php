@@ -50,25 +50,73 @@
             <!-- Left: Form -->
             <div class="lg:col-span-2 space-y-6">
                 
-                <!-- Alamat Pengiriman (Textarea) -->
-                <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
-                    <h3 class="font-bold text-gray-dark flex items-center gap-2 mb-4">
-                        <span class="material-symbols-rounded text-primary">map</span> Alamat Pengiriman
+                <!-- Detail Pembeli & Alamat Pengiriman (Baku & Readonly) -->
+                {{-- Data diri dan alamat ini diambil otomatis dari database pengguna saat ini --}}
+                {{-- Seluruh field beratribut 'readonly' dan bergaya 'bg-gray-100' agar pembeli tidak dapat mengubahnya di halaman ini --}}
+                <div class="card-3d rounded-2xl p-6 space-y-4">
+                    <h3 class="font-bold text-gray-dark flex items-center gap-2 mb-2">
+                        <span class="material-symbols-rounded text-primary">contact_page</span> Detail Pembeli & Alamat Pengiriman
                     </h3>
-                    <div class="flex flex-col gap-2">
-                        <label class="text-xs font-semibold text-gray-muted">Tulis alamat lengkap Anda secara manual:</label>
+                    <p class="text-xs text-gray-muted">Data pengiriman di bawah ini disesuaikan dengan data profil Anda saat mendaftar akun dan tidak dapat diubah di sini.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Menampilkan nama lengkap pembeli secara read-only -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold text-gray-muted">Nama Lengkap</label>
+                            <input
+                                type="text"
+                                readonly
+                                value="{{ Auth::user()->name }}"
+                                class="w-full rounded-xl border border-gray-light bg-gray-100 px-4 py-2.5 text-sm text-gray-dark cursor-not-allowed focus:outline-none"
+                            />
+                        </div>
+
+                        <!-- Menampilkan email pembeli secara read-only -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold text-gray-muted">Email</label>
+                            <input
+                                type="email"
+                                readonly
+                                value="{{ Auth::user()->email }}"
+                                class="w-full rounded-xl border border-gray-light bg-gray-100 px-4 py-2.5 text-sm text-gray-dark cursor-not-allowed focus:outline-none"
+                            />
+                        </div>
+
+                        <!-- Menampilkan nomor HP pembeli secara read-only -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold text-gray-muted">Nomor HP</label>
+                            <input
+                                type="text"
+                                readonly
+                                value="{{ Auth::user()->phone ?? '-' }}"
+                                class="w-full rounded-xl border border-gray-light bg-gray-100 px-4 py-2.5 text-sm text-gray-dark cursor-not-allowed focus:outline-none"
+                            />
+                        </div>
+
+                        <!-- Menampilkan status verifikasi akun/data diri -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold text-gray-muted">Status Data</label>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-green-light border border-primary/20 text-primary font-semibold text-xs leading-none">
+                                <span class="material-symbols-rounded text-sm">lock</span> Terverifikasi Sesuai Profil
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Menampilkan alamat lengkap pengiriman secara read-only (dikirim ke form request via name="shipping_address") -->
+                    <div class="flex flex-col gap-1.5 pt-2">
+                        <label class="text-xs font-semibold text-gray-muted">Alamat Pengiriman (Otomatis Sesuai Akun)</label>
                         <textarea
                             name="shipping_address"
+                            readonly
                             required
-                            rows="4"
-                            class="w-full rounded-xl border border-gray-light px-4 py-3 text-sm text-gray-dark placeholder-gray-muted focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all resize-none bg-bg-light"
-                            placeholder="Contoh: Jl. Melati No. 12, RT 03/RW 05, Kel. Sukasari, Kec. Cicendo, Kota Bandung, Jawa Barat 40171"
-                        >Jl. Melati No. 12, RT 03/RW 05, Kel. Sukasari, Kec. Cicendo, Kota Bandung, Jawa Barat 40171</textarea>
+                            rows="3"
+                            class="w-full rounded-xl border border-gray-light bg-gray-100 px-4 py-3 text-sm text-gray-dark cursor-not-allowed focus:outline-none resize-none"
+                        >{{ Auth::user()->address }}</textarea>
                     </div>
                 </div>
 
                 <!-- Metode Pengiriman (Ambil di Tempat / Diantar) -->
-                <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
+                <div class="card-3d rounded-2xl p-6">
                     <h3 class="font-bold text-gray-dark flex items-center gap-2 mb-4">
                         <span class="material-symbols-rounded text-primary">local_shipping</span> Metode Pengiriman
                     </h3>
@@ -114,7 +162,7 @@
                 </div>
 
                 <!-- Metode Pembayaran -->
-                <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
+                <div class="card-3d rounded-2xl p-6">
                     <h3 class="font-bold text-gray-dark flex items-center gap-2 mb-4">
                         <span class="material-symbols-rounded text-primary">payment</span> Metode Pembayaran
                     </h3>
@@ -187,7 +235,7 @@
                 </div>
 
                 <!-- Catatan -->
-                <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
+                <div class="card-3d rounded-2xl p-6">
                     <h3 class="font-bold text-gray-dark mb-3">Catatan</h3>
                     <textarea
                         name="notes"
@@ -200,7 +248,7 @@
 
             <!-- Right: Summary Card -->
             <div>
-                <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300 sticky top-24">
+                <div class="card-3d rounded-2xl p-6 sticky top-24">
                     <h3 class="font-bold text-gray-dark mb-4 border-b border-bg-light pb-4">Ringkasan Pesanan</h3>
                     
                     <!-- Products list dynamically handled in AlpineJS -->
@@ -249,7 +297,7 @@
                     </div>
 
                     <div class="pt-6">
-                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 font-bold rounded-xl bg-primary text-white hover:bg-primary-hover active:bg-primary-active shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 transition-all duration-300 px-4 py-3 text-base cursor-pointer">
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 font-bold rounded-xl bg-primary text-white btn-3d px-4 py-3 text-base cursor-pointer">
                             Buat Pesanan <span class="material-symbols-rounded text-lg">check</span>
                         </button>
                     </div>

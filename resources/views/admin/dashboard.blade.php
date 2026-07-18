@@ -12,7 +12,7 @@
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         @foreach($stats as $c)
-            <div class="bg-white rounded-2xl p-5 border border-gray-light shadow-soft hover:shadow-soft-hover transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-between">
+            <div class="card-3d rounded-2xl p-5 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-muted font-medium mb-1">{{ $c['label'] }}</p>
                     <p class="text-xl font-extrabold text-gray-dark leading-none tracking-tight">{{ $c['value'] }}</p>
@@ -28,7 +28,7 @@
     <!-- Charts & Analytics -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Revenue line-area chart -->
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
+        <div class="lg:col-span-2 card-3d rounded-2xl p-6">
             <div class="flex items-center justify-between mb-4 border-b border-bg-light pb-4">
                 <h3 class="font-bold text-gray-dark text-base">Tren Pendapatan Bulanan</h3>
                 <span class="text-xs text-gray-muted font-medium">Bulan berjalan</span>
@@ -39,7 +39,7 @@
         </div>
 
         <!-- Doughnut chart for top categories -->
-        <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
+        <div class="card-3d rounded-2xl p-6">
             <div class="flex items-center justify-between mb-4 border-b border-bg-light pb-4">
                 <h3 class="font-bold text-gray-dark text-base">Top Produk</h3>
                 <span class="text-xs text-gray-muted font-medium">Berdasarkan unit</span>
@@ -53,7 +53,7 @@
     <!-- Recent Orders & Alerts -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Recent Orders Table -->
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden hover:shadow-soft-hover transition-all duration-300">
+        <div class="lg:col-span-2 card-3d overflow-hidden rounded-2xl">
             <div class="p-6 border-b border-bg-light flex items-center justify-between">
                 <h3 class="font-bold text-gray-dark text-base">Pesanan Terbaru</h3>
                 <a href="{{ route('admin.orders') }}" class="text-xs font-bold text-primary hover:underline flex items-center gap-0.5">
@@ -89,27 +89,27 @@
             </div>
         </div>
 
-        <!-- Stok Tip Alert -->
-        <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 hover:shadow-soft-hover transition-all duration-300">
+        {{-- Bagian Peringatan Stok — diberi id="peringatan-stok" agar bisa dijangkau melalui tautan dari halaman Manajemen Stok --}}
+        <div id="peringatan-stok" class="card-3d rounded-2xl p-6">
             <h3 class="font-bold text-gray-dark text-base mb-4 border-b border-bg-light pb-3 flex items-center gap-1.5">
                 <span class="material-symbols-rounded text-primary">warning</span> Peringatan Stok
             </h3>
             <div class="space-y-3.5">
-                @foreach([
-                    ['name' => 'Anggur Merah', 'stock' => 35, 'unit' => 'Kg'],
-                    ['name' => 'Buah Naga Merah', 'stock' => 40, 'unit' => 'Kg'],
-                    ['name' => 'Semangka Merah', 'stock' => 45, 'unit' => 'Kg']
-                ] as $low)
+                @forelse($lowStockProducts as $low)
                     <div class="flex items-center justify-between p-3 rounded-xl bg-orange-50/50 border border-accent/15">
                         <div>
-                            <p class="text-xs font-bold text-gray-dark leading-tight">{{ $low['name'] }}</p>
-                            <p class="text-[10px] text-gray-muted mt-0.5">Sisa Stok: <span class="font-bold text-accent">{{ $low['stock'] }} {{ $low['unit'] }}</span></p>
+                            <p class="text-xs font-bold text-gray-dark leading-tight">{{ $low->name }}</p>
+                            <p class="text-[10px] text-gray-muted mt-0.5">Sisa Stok: <span class="font-bold text-accent">{{ $low->stock }} {{ $low->unit }}</span></p>
                         </div>
                         <a href="{{ route('admin.stock') }}" class="px-2.5 py-1.5 rounded-xl bg-accent text-white text-[10px] font-bold hover:bg-accent-hover transition-colors">
                             Isi Stok
                         </a>
                     </div>
-                @endforeach
+                @empty
+                    <div class="p-3 text-center text-xs text-gray-muted bg-bg-light rounded-xl">
+                        Semua stok buah aman.
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>

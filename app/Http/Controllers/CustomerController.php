@@ -376,7 +376,7 @@ class CustomerController extends Controller
             return redirect()->route('login');
         }
 
-        $userId = \App\Models\User::where('role', 'pelanggan')->first()->id ?? 2;
+        $userId = Auth::id();
 
         $orders = Order::with(['orderItems.product', 'payment'])
             ->where('user_id', $userId)
@@ -473,6 +473,28 @@ class CustomerController extends Controller
 
     public function updatePassword(Request $request)
     {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Password lama wajib diisi.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password baru minimal harus 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password baru tidak cocok.',
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login')->withErrors(['current_password' => 'Sesi login habis, silakan login ulang.']);
+        }
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Password lama yang Anda masukkan salah.'])->withInput();
+        }
+
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        $user->save();
+
         return redirect()->route('profile')->with('success', 'Password Anda berhasil diperbarui!');
     }
 }

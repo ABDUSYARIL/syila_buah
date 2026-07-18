@@ -55,7 +55,7 @@
             @else
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                     @foreach($products as $p)
-                        <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden group flex flex-col justify-between hover:shadow-soft-hover transform hover:-translate-y-1.5 transition-all duration-300">
+                        <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
                             <a href="{{ route('product.detail', $p['id']) }}" class="block">
                                 <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                                     <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
@@ -101,7 +101,7 @@
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 @foreach ($bestsellers as $p)
-                    <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden group flex flex-col justify-between hover:shadow-soft-hover transform hover:-translate-y-1.5 transition-all duration-300">
+                    <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
                         <a href="{{ route('product.detail', $p['id']) }}" class="block">
                             <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                                 <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
@@ -144,7 +144,7 @@
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 @foreach ($newest as $p)
-                    <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden group flex flex-col justify-between hover:shadow-soft-hover transform hover:-translate-y-1.5 transition-all duration-300">
+                    <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
                         <a href="{{ route('product.detail', $p['id']) }}" class="block">
                             <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                                 <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />

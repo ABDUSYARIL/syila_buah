@@ -73,7 +73,7 @@
     @else
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             @foreach($products as $p)
-                <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden group flex flex-col justify-between hover:shadow-soft-hover transform hover:-translate-y-1.5 transition-all duration-300">
+                <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
                     <a href="{{ route('product.detail', $p['id']) }}" class="block">
                         <div class="relative bg-white overflow-hidden aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                             <img
@@ -99,13 +99,9 @@
                             <a href="{{ route('product.detail', $p['id']) }}" class="hover:text-primary transition-colors">
                                 <h3 class="font-bold text-gray-dark text-sm leading-tight mb-2 h-10 overflow-hidden">{{ $p['name'] }}</h3>
                             </a>
+                            {{-- Rating bintang produk dihapus sesuai instruksi --}}
                             <div class="flex items-center gap-1 mb-3">
-                                <div class="flex items-center gap-0.5">
-                                    @for($i=1; $i<=5; $i++)
-                                        <span class="material-symbols-rounded text-xs text-accent {{ $i <= round($p['rating']) ? 'fill-1' : 'text-gray-200' }}">star</span>
-                                    @endfor
-                                </div>
-                                <span class="text-xs text-gray-muted">({{ $p['sold'] }})</span>
+                                <span class="text-xs text-gray-muted">{{ $p['sold'] }} terjual</span>
                             </div>
                         </div>
                         <div class="flex items-center justify-between border-t border-bg-light pt-3">
