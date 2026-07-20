@@ -136,9 +136,79 @@
          Riwayat yang sudah lebih dari 1 bulan akan otomatis dihapus oleh sistem.
          =================================================================== --}}
     <div id="riwayat-log-stok" class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden hover:shadow-soft-hover transition-all duration-300">
-        <div class="p-6 border-b border-bg-light">
-            <h3 class="font-bold text-gray-dark text-base">Riwayat Aktivitas Log Stok</h3>
-            <p class="text-xs text-gray-muted mt-1">Data terintegrasi langsung dengan database. Riwayat otomatis dihapus setelah 1 bulan.</p>
+        <div class="p-6 border-b border-bg-light flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h3 class="font-bold text-gray-dark text-base flex items-center gap-2">
+                    Riwayat Aktivitas Log Stok
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-light text-primary border border-primary/20">
+                        Auto-Hapus: {{ $retentionDays == 7 ? '1 Minggu' : ($retentionDays == 30 ? '1 Bulan' : ($retentionDays == 90 ? '3 Bulan' : 'Nonaktif')) }}
+                    </span>
+                </h3>
+                <p class="text-xs text-gray-muted mt-1">Data terintegrasi langsung dengan database. Riwayat otomatis dihapus berdasarkan durasi yang Anda tentukan.</p>
+            </div>
+
+            <!-- Modal Button / Trigger Pembersihan Riwayat Stok -->
+            <div x-data="{ openClearModal: false }">
+                <button @click="openClearModal = true" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold border border-red-200 transition-all cursor-pointer shadow-sm">
+                    <span class="material-symbols-rounded text-sm">delete_sweep</span>
+                    Atur & Hapus Riwayat
+                </button>
+
+                <!-- Modal Form Pembersihan Riwayat Stok -->
+                <div x-show="openClearModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs" x-transition.opacity>
+                    <div @click.outside="openClearModal = false" class="bg-white rounded-2xl shadow-xl border border-gray-light w-full max-w-md p-6 space-y-5">
+                        <div class="flex items-center justify-between border-b border-bg-light pb-3">
+                            <h4 class="font-bold text-gray-dark text-base flex items-center gap-2">
+                                <span class="material-symbols-rounded text-red-500">auto_delete</span>
+                                Pembersihan Riwayat Log Stok
+                            </h4>
+                            <button @click="openClearModal = false" class="text-gray-muted hover:text-gray-dark text-lg cursor-pointer">&times;</button>
+                        </div>
+
+                        <form action="{{ route('admin.stock.clear-history') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <div>
+                                <label class="block text-xs font-bold text-gray-dark mb-1">Target Log Riwayat Stok</label>
+                                <select name="stock_type" class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
+                                    <option value="semua" selected>Semua Log (Stok Masuk & Stok Keluar)</option>
+                                    <option value="masuk">Hanya Stok Masuk (Penambahan Stok)</option>
+                                    <option value="keluar">Hanya Stok Keluar (Penjualan / Penyesuaian)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-dark mb-1">Rentang Waktu Hapus Riwayat</label>
+                                <select name="period" class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
+                                    <option value="7_days">Lebih dari 1 Minggu (7 Hari)</option>
+                                    <option value="30_days" selected>Lebih dari 1 Bulan (30 Hari)</option>
+                                    <option value="90_days">Lebih dari 3 Bulan (90 Hari)</option>
+                                    <option value="all">Hapus Semua Riwayat Sesuai Target</option>
+                                </select>
+                                <p class="text-[11px] text-gray-muted mt-1">Data log stok yang lebih tua dari rentang waktu di atas akan dihapus dari sistem.</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-dark mb-1">Simpan Pengaturan Otomatis (Retensi Log)</label>
+                                <select name="auto_retention" class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
+                                    <option value="7" {{ $retentionDays == 7 ? 'selected' : '' }}>Otomatis Hapus > 1 Minggu</option>
+                                    <option value="30" {{ $retentionDays == 30 ? 'selected' : '' }}>Otomatis Hapus > 1 Bulan</option>
+                                    <option value="90" {{ $retentionDays == 90 ? 'selected' : '' }}>Otomatis Hapus > 3 Bulan</option>
+                                    <option value="0" {{ $retentionDays == 0 ? 'selected' : '' }}>Nonaktifkan Hapus Otomatis</option>
+                                </select>
+                            </div>
+
+                            <div class="pt-3 border-t border-bg-light flex items-center justify-end gap-2">
+                                <button type="button" @click="openClearModal = false" class="px-4 py-2 text-xs font-semibold rounded-xl border border-gray-light text-gray-dark hover:bg-bg-light cursor-pointer">
+                                    Batal
+                                </button>
+                                <button type="submit" onclick="return confirm('Apakah Anda yakin ingin menghapus riwayat log stok sesuai rentang waktu yang dipilih?');" class="px-4 py-2 text-xs font-bold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all cursor-pointer shadow-soft">
+                                    Hapus Riwayat Sekarang
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {{-- Tab Navigator — menggunakan URL query parameter 'tab' agar state tab tetap saat paginasi --}}

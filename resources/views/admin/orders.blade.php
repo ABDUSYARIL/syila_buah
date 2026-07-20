@@ -4,10 +4,71 @@
 
 @section('content')
 <div>
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-dark">Kelola Pesanan</h1>
-        {{-- Menampilkan total keseluruhan pesanan dari database, bukan hanya di halaman ini --}}
-        <p class="text-sm text-gray-muted">{{ $orders->total() }} total pesanan</p>
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-dark flex items-center gap-2">
+                Kelola Pesanan
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-light text-primary border border-primary/20">
+                    Auto-Hapus Final: {{ $retentionDays == 7 ? '1 Minggu' : ($retentionDays == 30 ? '1 Bulan' : ($retentionDays == 90 ? '3 Bulan' : 'Nonaktif')) }}
+                </span>
+            </h1>
+            {{-- Menampilkan total keseluruhan pesanan dari database, bukan hanya di halaman ini --}}
+            <p class="text-sm text-gray-muted">{{ $orders->total() }} total pesanan terdaftar</p>
+        </div>
+
+        <!-- Modal Button / Trigger Pembersihan Riwayat Pesanan -->
+        <div x-data="{ openClearOrdersModal: false }">
+            <button @click="openClearOrdersModal = true" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold border border-red-200 transition-all cursor-pointer shadow-sm">
+                <span class="material-symbols-rounded text-sm">delete_sweep</span>
+                Atur & Hapus Riwayat
+            </button>
+
+            <!-- Modal Form Pembersihan Riwayat Pesanan Selesai / Dibatalkan -->
+            <div x-show="openClearOrdersModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs" x-transition.opacity>
+                <div @click.outside="openClearOrdersModal = false" class="bg-white rounded-2xl shadow-xl border border-gray-light w-full max-w-md p-6 space-y-5">
+                    <div class="flex items-center justify-between border-b border-bg-light pb-3">
+                        <h4 class="font-bold text-gray-dark text-base flex items-center gap-2">
+                            <span class="material-symbols-rounded text-red-500">auto_delete</span>
+                            Pembersihan Riwayat Pesanan
+                        </h4>
+                        <button @click="openClearOrdersModal = false" class="text-gray-muted hover:text-gray-dark text-lg cursor-pointer">&times;</button>
+                    </div>
+
+                    <form action="{{ route('admin.orders.clear-history') }}" method="POST" class="space-y-4">
+                        @csrf
+                        <div>
+                            <label class="block text-xs font-bold text-gray-dark mb-1">Rentang Waktu Hapus Pesanan (Selesai/Dibatalkan)</label>
+                            <select name="period" class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
+                                <option value="7_days">Lebih dari 1 Minggu (7 Hari)</option>
+                                <option value="30_days" selected>Lebih dari 1 Bulan (30 Hari)</option>
+                                <option value="90_days">Lebih dari 3 Bulan (90 Hari)</option>
+                                <option value="all_completed">Semua Pesanan Selesai & Dibatalkan</option>
+                            </select>
+                            <p class="text-[11px] text-gray-muted mt-1">Hanya memicu penghapusan riwayat pesanan yang sudah <strong>Selesai</strong> atau <strong>Dibatalkan</strong>.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-dark mb-1">Simpan Pengaturan Otomatis (Retensi Pesanan)</label>
+                            <select name="auto_retention" class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
+                                <option value="7" {{ $retentionDays == 7 ? 'selected' : '' }}>Otomatis Hapus Final > 1 Minggu</option>
+                                <option value="30" {{ $retentionDays == 30 ? 'selected' : '' }}>Otomatis Hapus Final > 1 Bulan</option>
+                                <option value="90" {{ $retentionDays == 90 ? 'selected' : '' }}>Otomatis Hapus Final > 3 Bulan</option>
+                                <option value="0" {{ $retentionDays == 0 ? 'selected' : '' }}>Nonaktifkan Hapus Otomatis</option>
+                            </select>
+                        </div>
+
+                        <div class="pt-3 border-t border-bg-light flex items-center justify-end gap-2">
+                            <button type="button" @click="openClearOrdersModal = false" class="px-4 py-2 text-xs font-semibold rounded-xl border border-gray-light text-gray-dark hover:bg-bg-light cursor-pointer">
+                                Batal
+                            </button>
+                            <button type="submit" onclick="return confirm('Apakah Anda yakin ingin menghapus riwayat pesanan (Selesai/Dibatalkan) sesuai rentang waktu yang dipilih?');" class="px-4 py-2 text-xs font-bold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all cursor-pointer shadow-soft">
+                                Hapus Riwayat Sekarang
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if(session('success'))

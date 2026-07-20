@@ -44,9 +44,15 @@
             <!-- Right Actions -->
             <div class="hidden md:flex items-center gap-4">
                 @if(request()->routeIs('landing'))
-                    {{-- Tombol Login selalu tampil di landing page dan mengarah ke rute /login --}}
-                    {{-- Logika pengalihan jika sudah login akan ditangani di sisi backend (AuthController@loginPage) --}}
-                    <a href="{{ route('login') }}" class="text-sm text-gray-muted hover:text-primary font-semibold transition-colors">Login</a>
+                    @if(Illuminate\Support\Facades\Auth::check() || session('username') || session('role'))
+                        @php
+                            $userRole = session('role') ?? (Illuminate\Support\Facades\Auth::check() ? Illuminate\Support\Facades\Auth::user()->role : 'pelanggan');
+                            $homeRoute = ($userRole === 'admin') ? route('admin.dashboard') : route('home');
+                        @endphp
+                        <a href="{{ $homeRoute }}" class="text-sm text-primary font-bold hover:text-primary-hover transition-colors">Beranda</a>
+                    @else
+                        <a href="{{ route('login') }}" class="text-sm text-gray-muted hover:text-primary font-semibold transition-colors">Login</a>
+                    @endif
                     <a href="{{ route('catalog') }}" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover active:bg-primary-active px-5 py-2.5 text-sm shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 transition-all duration-300">
                         Lihat Produk
                     </a>
@@ -96,7 +102,15 @@
                 <a href="#tentang-kami" @click="mobileOpen = false" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Tentang Kami</a>
                 <a href="#kontak" @click="mobileOpen = false" class="block py-2 text-sm text-gray-muted hover:text-primary font-medium">Kontak</a>
                 <div class="pt-4 border-t border-gray-light flex flex-col gap-2">
-                    <a href="{{ route('login') }}" class="block py-2 text-center text-sm text-gray-muted hover:text-primary font-semibold">Login</a>
+                    @if(Illuminate\Support\Facades\Auth::check() || session('username') || session('role'))
+                        @php
+                            $userRole = session('role') ?? (Illuminate\Support\Facades\Auth::check() ? Illuminate\Support\Facades\Auth::user()->role : 'pelanggan');
+                            $homeRoute = ($userRole === 'admin') ? route('admin.dashboard') : route('home');
+                        @endphp
+                        <a href="{{ $homeRoute }}" class="block py-2 text-center text-sm text-primary font-bold">Beranda</a>
+                    @else
+                        <a href="{{ route('login') }}" class="block py-2 text-center text-sm text-gray-muted hover:text-primary font-semibold">Login</a>
+                    @endif
                     <a href="{{ route('catalog') }}" class="block py-2.5 text-center text-sm font-semibold rounded-xl bg-primary text-white">Lihat Produk</a>
                 </div>
             @elseif(session('role') === 'pelanggan' || session('role') === 'customer')

@@ -49,8 +49,10 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/stock', [AdminController::class, 'stock'])->name('stock');
     Route::post('/stock/add', [AdminController::class, 'addStock'])->name('stock.add');
     Route::post('/stock/adjust', [AdminController::class, 'adjustStock'])->name('stock.adjust');
+    Route::post('/stock/clear-history', [AdminController::class, 'clearStockHistory'])->name('stock.clear-history');
     
     Route::get('/orders', [AdminController::class, 'orders'])->name('orders');
+    Route::post('/orders/clear-history', [AdminController::class, 'clearOrderHistory'])->name('orders.clear-history');
     Route::post('/orders/{invoice}/accept', [AdminController::class, 'acceptOrder'])->name('orders.accept');
     Route::post('/orders/{invoice}/reject', [AdminController::class, 'rejectOrder'])->name('orders.reject');
     Route::post('/orders/{invoice}/ship', [AdminController::class, 'shipOrder'])->name('orders.ship');

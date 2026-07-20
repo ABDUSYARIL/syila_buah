@@ -117,9 +117,12 @@ class AdminController extends Controller
     // Fungsi untuk menampilkan halaman Manajemen Stok
     public function stock()
     {
-        // ── AUTO-DELETE: Hapus riwayat log stok yang sudah lebih dari 1 bulan ──
-        // Fitur ini memastikan tabel riwayat tidak terus menumpuk, data lama > 30 hari dihapus otomatis
-        StockHistory::where('created_at', '<', now()->subMonth())->delete();
+        // ── AUTO-DELETE: Hapus riwayat log stok berdasarkan pengaturan retensi ──
+        // Default: 30 hari (1 bulan), dapat disesuaikan ke 7 hari (1 minggu) atau rentang lainnya oleh admin
+        $retentionDays = (int) session('stock_retention_days', 30);
+        if ($retentionDays > 0) {
+            StockHistory::where('created_at', '<', now()->subDays($retentionDays))->delete();
+        }
 
         // Mengambil data semua produk untuk keperluan dropdown formulir input stok
         $products = Product::all();
@@ -146,7 +149,7 @@ class AdminController extends Controller
         $activeTab = request()->query('tab', 'masuk');
 
         // Mengirim data ke view halaman Manajemen Stok
-        return view('admin.stock', compact('products', 'stockMasuk', 'stockKeluar', 'stockSaatIni', 'activeTab'));
+        return view('admin.stock', compact('products', 'stockMasuk', 'stockKeluar', 'stockSaatIni', 'activeTab', 'retentionDays'));
     }
 
     public function addStock(Request $request)
@@ -220,11 +223,14 @@ class AdminController extends Controller
     // Fungsi untuk menampilkan halaman Kelola Pesanan dengan fitur paginasi
     public function orders(Request $request)
     {
-        // ── AUTO-DELETE: Hapus pesanan yang sudah lebih dari 1 bulan dan berstatus Selesai/Dibatalkan ──
-        // Hanya pesanan yang sudah final (Selesai atau Dibatalkan) yang akan dihapus otomatis
-        Order::whereIn('status', ['Selesai', 'Dibatalkan'])
-            ->where('created_at', '<', now()->subMonth())
-            ->delete();
+        // ── AUTO-DELETE: Hapus pesanan yang sudah berstatus Selesai/Dibatalkan berdasarkan retensi ──
+        // Default: 30 hari (1 bulan), dapat disesuaikan ke 7 hari (1 minggu) atau rentang lainnya oleh admin
+        $retentionDays = (int) session('order_retention_days', 30);
+        if ($retentionDays > 0) {
+            Order::whereIn('status', ['Selesai', 'Dibatalkan'])
+                ->where('created_at', '<', now()->subDays($retentionDays))
+                ->delete();
+        }
 
         // Mengambil nilai filter pencarian dan status dari parameter URL
         $search = $request->query('search', '');
@@ -286,8 +292,8 @@ class AdminController extends Controller
             ];
         });
 
-        // Kirim data pesanan, kata kunci pencarian, status filter, dan jumlah badge ke view
-        return view('admin.orders', compact('orders', 'search', 'status', 'statusCounts'));
+        // Kirim data pesanan, kata kunci pencarian, status filter, jumlah badge, dan retensi hari ke view
+        return view('admin.orders', compact('orders', 'search', 'status', 'statusCounts', 'retentionDays'));
     }
 
     // Fungsi untuk menampilkan daftar admin
@@ -576,5 +582,110 @@ class AdminController extends Controller
         $user->save();
 
         return redirect()->route('admin.profile')->with('success', 'Password admin berhasil diperbarui!');
+    }
+
+    // Fungsi untuk menghapus riwayat log stok berdasarkan pilihan jenis log (masuk/keluar/semua) & rentang waktu (1 minggu, 1 bulan, 3 bulan, semua)
+    public function clearStockHistory(Request $request)
+    {
+        $period = $request->input('period', '30_days');
+        $stockType = $request->input('stock_type', 'semua');
+        $autoRetention = $request->input('auto_retention');
+
+        if ($autoRetention !== null) {
+            session(['stock_retention_days' => (int) $autoRetention]);
+        }
+
+        $query = StockHistory::query();
+        $typeLabel = '';
+
+        if ($stockType === 'masuk') {
+            $query->where('qty', '>', 0);
+            $typeLabel = 'Stok Masuk';
+        } elseif ($stockType === 'keluar') {
+            $query->where('qty', '<', 0);
+            $typeLabel = 'Stok Keluar';
+        } else {
+            $typeLabel = 'Semua Log Stok (Masuk & Keluar)';
+        }
+
+        $periodLabel = '';
+
+        switch ($period) {
+            case '7_days':
+                $query->where('created_at', '<', now()->subDays(7));
+                $periodLabel = 'lebih dari 1 minggu (7 hari)';
+                break;
+            case '30_days':
+                $query->where('created_at', '<', now()->subDays(30));
+                $periodLabel = 'lebih dari 1 bulan (30 hari)';
+                break;
+            case '90_days':
+                $query->where('created_at', '<', now()->subDays(90));
+                $periodLabel = 'lebih dari 3 bulan (90 hari)';
+                break;
+            case 'all':
+                $periodLabel = 'seluruh waktu';
+                break;
+            default:
+                $query->where('created_at', '<', now()->subDays(30));
+                $periodLabel = 'lebih dari 1 bulan';
+                break;
+        }
+
+        $deletedCount = $query->delete();
+
+        $message = "Berhasil menghapus {$deletedCount} data riwayat {$typeLabel} ({$periodLabel}).";
+        if ($autoRetention !== null) {
+            $daysLabel = $autoRetention == 7 ? '1 Minggu' : ($autoRetention == 30 ? '1 Bulan' : ($autoRetention == 90 ? '3 Bulan' : 'Nonaktif'));
+            $message .= " Preferensi pembersihan otomatis disimpan ke: {$daysLabel}.";
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    // Fungsi untuk menghapus riwayat pesanan (Selesai / Dibatalkan) berdasarkan pilihan rentang waktu
+    public function clearOrderHistory(Request $request)
+    {
+        $period = $request->input('period', '30_days');
+        $autoRetention = $request->input('auto_retention');
+
+        if ($autoRetention !== null) {
+            session(['order_retention_days' => (int) $autoRetention]);
+        }
+
+        $query = Order::whereIn('status', ['Selesai', 'Dibatalkan']);
+        $label = '';
+
+        switch ($period) {
+            case '7_days':
+                $query->where('created_at', '<', now()->subDays(7));
+                $label = 'lebih dari 1 minggu (7 hari)';
+                break;
+            case '30_days':
+                $query->where('created_at', '<', now()->subDays(30));
+                $label = 'lebih dari 1 bulan (30 hari)';
+                break;
+            case '90_days':
+                $query->where('created_at', '<', now()->subDays(90));
+                $label = 'lebih dari 3 bulan (90 hari)';
+                break;
+            case 'all_completed':
+                $label = 'semua pesanan Selesai & Dibatalkan';
+                break;
+            default:
+                $query->where('created_at', '<', now()->subDays(30));
+                $label = 'lebih dari 1 bulan';
+                break;
+        }
+
+        $deletedCount = $query->delete();
+
+        $message = "Berhasil menghapus {$deletedCount} data riwayat pesanan Selesai/Dibatalkan ({$label}).";
+        if ($autoRetention !== null) {
+            $daysLabel = $autoRetention == 7 ? '1 Minggu' : ($autoRetention == 30 ? '1 Bulan' : ($autoRetention == 90 ? '3 Bulan' : 'Nonaktif'));
+            $message .= " Preferensi pembersihan otomatis disimpan ke: {$daysLabel}.";
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 }
