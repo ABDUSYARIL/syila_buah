@@ -84,6 +84,24 @@
                 <p class="text-sm text-gray-muted leading-relaxed">{{ $product['desc'] }}</p>
             </div>
 
+            <!-- Stock Warning Alert Banner -->
+            @if($product['stock'] <= 0)
+                <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-semibold flex items-center gap-3 shadow-sm">
+                    <span class="material-symbols-rounded text-xl text-red-600 flex-shrink-0">error</span>
+                    <span><strong>Peringatan Stok:</strong> Stok produk ini sedang habis dan tidak dapat dipesan.</span>
+                </div>
+            @elseif($product['stock'] <= 20)
+                <div class="p-4 rounded-2xl bg-orange-50 border border-orange-200 text-orange-800 text-sm font-semibold flex items-center gap-3 shadow-sm">
+                    <span class="material-symbols-rounded text-xl text-accent flex-shrink-0 animate-pulse">warning</span>
+                    <span><strong>Peringatan Stok:</strong> Stok produk ini hampir habis! Sisa stok tinggal <strong class="text-red-600">{{ $product['stock'] }} {{ $product['unit'] }}</strong>. Segera pesan sebelum kehabisan.</span>
+                </div>
+            @elseif($product['stock'] <= 50)
+                <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold flex items-center gap-3 shadow-sm">
+                    <span class="material-symbols-rounded text-xl text-amber-600 flex-shrink-0">info</span>
+                    <span><strong>Peringatan Stok:</strong> Stok produk terbatas (Tersedia {{ $product['stock'] }} {{ $product['unit'] }}).</span>
+                </div>
+            @endif
+
             <!-- Qty & Order Form -->
             <form action="{{ route('cart.add') }}" method="POST" class="space-y-6 pt-2">
                 @csrf

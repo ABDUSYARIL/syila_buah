@@ -23,6 +23,7 @@
     @else
         @php
             $subtotal = 0;
+            $hasStockError = false;
             foreach($cart as $item) {
                 $subtotal += $item['price'] * $item['qty'];
             }
@@ -47,11 +48,19 @@
                         </thead>
                         <tbody>
                             @foreach($cart as $productId => $item)
-                                <tr class="border-b border-bg-light hover:bg-bg-light/50 transition-colors">
+                                @php
+                                    $dbProduct = \App\Models\Product::find($productId);
+                                    $isItemOutOfStock = (!$dbProduct || $dbProduct->stock <= 0);
+                                    $isExceedingStock = ($dbProduct && $dbProduct->stock > 0 && $item['qty'] > $dbProduct->stock);
+                                    if ($isItemOutOfStock || $isExceedingStock) {
+                                        $hasStockError = true;
+                                    }
+                                @endphp
+                                <tr class="border-b border-bg-light transition-colors {{ $isItemOutOfStock ? 'bg-red-50/40' : ($isExceedingStock ? 'bg-amber-50/40' : 'hover:bg-bg-light/50') }}">
                                     <!-- Foto -->
                                     <td class="py-4 px-6">
-                                        <div class="w-16 h-16 rounded-xl bg-white border border-gray-light p-2 flex items-center justify-center">
-                                            <img src="{{ \App\Http\Controllers\ProductData::img($item['img'], 120, 120) }}" alt="{{ $item['name'] }}" class="max-w-full max-h-full object-contain" />
+                                        <div class="w-16 h-16 rounded-xl bg-white border border-gray-light p-2 flex items-center justify-center relative">
+                                            <img src="{{ \App\Http\Controllers\ProductData::img($item['img'], 120, 120) }}" alt="{{ $item['name'] }}" class="max-w-full max-h-full object-contain {{ $isItemOutOfStock ? 'filter grayscale opacity-60' : '' }}" />
                                         </div>
                                     </td>
                                     
@@ -59,6 +68,15 @@
                                     <td class="py-4 px-4">
                                         <p class="font-bold text-gray-dark text-sm">{{ $item['name'] }}</p>
                                         <p class="text-xs text-gray-muted mt-0.5">{{ $item['unit'] }}</p>
+                                        @if($isItemOutOfStock)
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-lg border border-red-200 mt-1">
+                                                <span class="material-symbols-rounded text-xs">error</span> Peringatan: Stok Habis
+                                            </span>
+                                        @elseif($isExceedingStock)
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200 mt-1">
+                                                <span class="material-symbols-rounded text-xs">warning</span> Peringatan: Melebihi Stok (Sisa: {{ $dbProduct->stock }})
+                                            </span>
+                                        @endif
                                     </td>
                                     
                                     <!-- Harga -->
@@ -133,9 +151,19 @@
                     </div>
 
                     <div class="pt-6">
-                        <a href="{{ route('checkout') }}" class="w-full inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover active:bg-primary-active shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 transition-all duration-300 px-4 py-3 text-base">
-                            Checkout <span class="material-symbols-rounded text-lg">arrow_forward</span>
-                        </a>
+                        @if($hasStockError)
+                            <div class="mb-3 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-start gap-2 shadow-sm">
+                                <span class="material-symbols-rounded text-base flex-shrink-0 mt-0.5">warning</span>
+                                <span>Peringatan Stok: Terdapat produk di keranjang yang stoknya habis atau melebihi sisa stok. Harap sesuaikan jumlah pesanan Anda.</span>
+                            </div>
+                            <button type="button" disabled class="w-full inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-gray-200 text-gray-400 border border-gray-300 px-4 py-3 text-base cursor-not-allowed select-none shadow-none">
+                                Checkout Ditolak <span class="material-symbols-rounded text-lg">block</span>
+                            </button>
+                        @else
+                            <a href="{{ route('checkout') }}" class="w-full inline-flex items-center justify-center gap-2 font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover active:bg-primary-active shadow-soft hover:shadow-soft-hover transform hover:-translate-y-0.5 transition-all duration-300 px-4 py-3 text-base">
+                                Checkout <span class="material-symbols-rounded text-lg">arrow_forward</span>
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>

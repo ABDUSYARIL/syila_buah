@@ -181,9 +181,26 @@ class CustomerController extends Controller
         if (isset($cart[$productId])) {
             if ($qty <= 0) {
                 unset($cart[$productId]);
-            } else {
-                $cart[$productId]['qty'] = $qty;
+                session(['cart' => $cart]);
+                return redirect()->route('cart')->with('success', 'Produk berhasil dihapus dari keranjang.');
             }
+
+            $product = Product::find($productId);
+            if ($product) {
+                if ($product->stock <= 0) {
+                    unset($cart[$productId]);
+                    session(['cart' => $cart]);
+                    return redirect()->route('cart')->with('error', 'Peringatan Stok: Stok ' . $product->name . ' telah habis dan otomatis dihapus dari keranjang.');
+                }
+
+                if ($qty > $product->stock) {
+                    $cart[$productId]['qty'] = $product->stock;
+                    session(['cart' => $cart]);
+                    return redirect()->route('cart')->with('warning', 'Peringatan Stok: Jumlah pesanan untuk ' . $product->name . ' disesuaikan dengan batas maksimal stok yang tersedia (' . $product->stock . ' ' . $product->unit . ').');
+                }
+            }
+
+            $cart[$productId]['qty'] = $qty;
         }
 
         session(['cart' => $cart]);
@@ -228,6 +245,20 @@ class CustomerController extends Controller
             }
         }
 
+        // Check stock warnings for items in cart
+        $hasStockWarning = false;
+        foreach ($cart as $productId => $item) {
+            $product = Product::find($productId);
+            if ($product && ($product->stock <= 0 || $item['qty'] > $product->stock)) {
+                $hasStockWarning = true;
+                break;
+            }
+        }
+
+        if ($hasStockWarning) {
+            session()->flash('warning', 'Peringatan Stok: Terdapat produk di keranjang yang stoknya habis atau melebihi stok tersedia. Harap periksa keranjang Anda.');
+        }
+
         return view('customer.checkout', compact('cart'));
     }
 
@@ -249,6 +280,17 @@ class CustomerController extends Controller
         $cart = session('cart', []);
         if (empty($cart)) {
             return redirect()->route('home');
+        }
+
+        // Validate stock for all items before proceeding to payment
+        foreach ($cart as $productId => $item) {
+            $product = Product::find($productId);
+            if (!$product || $product->stock <= 0) {
+                return redirect()->route('cart')->with('error', 'Peringatan Stok: Produk "' . $item['name'] . '" di keranjang Anda telah habis. Harap hapus atau perbarui keranjang Anda.');
+            }
+            if ($item['qty'] > $product->stock) {
+                return redirect()->route('cart')->with('error', 'Peringatan Stok: Jumlah pesanan untuk "' . $product->name . '" (' . $item['qty'] . ') melebihi stok yang tersedia (' . $product->stock . ' ' . $product->unit . '). Harap perbarui keranjang Anda.');
+            }
         }
 
         $subtotal = 0;

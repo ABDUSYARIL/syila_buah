@@ -77,20 +77,84 @@
                     <p class="text-xs text-gray-muted" id="current-date"></p>
                 </div>
                 {{-- Menambahkan ikon pemberitahuan stok rendah yang terhubung langsung ke Manajemen Stok --}}
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 relative" x-data="{ notifOpen: false }">
                     @php
-                        // Menghitung jumlah produk riil yang stoknya di bawah batas minimal (50 unit)
-                        $lowStockCount = \App\Models\Product::where('stock', '<', 50)->count();
+                        // Menghitung & mengambil produk riil yang stoknya di bawah batas minimal (50 unit)
+                        $lowStockProducts = \App\Models\Product::where('stock', '<', 50)->orderBy('stock', 'asc')->get();
+                        $lowStockCount = $lowStockProducts->count();
                     @endphp
-                    {{-- Jika ada produk yang stoknya menipis, tampilkan lonceng pemberitahuan merah yang berkedip --}}
-                    @if($lowStockCount > 0)
-                        <a href="{{ route('admin.stock') }}" class="relative w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-all border border-red-100 shadow-sm" title="Peringatan: {{ $lowStockCount }} Produk Stok Rendah">
-                            <span class="material-symbols-rounded text-xl animate-pulse">notifications_active</span>
-                            <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+                    
+                    <!-- Lonceng Pemberitahuan Stok -->
+                    <button 
+                        type="button" 
+                        @click="notifOpen = !notifOpen" 
+                        class="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 border shadow-sm cursor-pointer {{ $lowStockCount > 0 ? 'bg-red-50 text-red-500 hover:bg-red-100 border-red-200' : 'bg-bg-light text-gray-muted hover:text-gray-dark border-gray-light' }}" 
+                        title="Peringatan Stok Menipis ({{ $lowStockCount }} Produk)"
+                    >
+                        <span class="material-symbols-rounded text-xl {{ $lowStockCount > 0 ? 'animate-bounce text-red-600' : '' }}">
+                            {{ $lowStockCount > 0 ? 'notifications_active' : 'notifications' }}
+                        </span>
+                        @if($lowStockCount > 0)
+                            <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                                 {{ $lowStockCount }}
                             </span>
-                        </a>
-                    @endif
+                        @endif
+                    </button>
+
+                    <!-- Dropdown List Produk Stok Menipis -->
+                    <div 
+                        x-show="notifOpen" 
+                        @click.outside="notifOpen = false" 
+                        x-transition:enter="transition ease-out duration-200" 
+                        x-transition:enter-start="opacity-0 scale-95 -translate-y-2" 
+                        x-transition:enter-end="opacity-100 scale-100 translate-y-0" 
+                        x-transition:leave="transition ease-in duration-150" 
+                        x-transition:leave-end="opacity-0 scale-95 -translate-y-2" 
+                        class="absolute right-0 top-12 w-80 sm:w-96 bg-white rounded-2xl shadow-3d border border-gray-light z-50 p-4" 
+                        style="display: none;"
+                    >
+                        <div class="flex items-center justify-between border-b border-bg-light pb-3 mb-3">
+                            <h4 class="font-extrabold text-sm text-gray-dark flex items-center gap-1.5">
+                                <span class="material-symbols-rounded text-red-500 text-lg">warning</span> Peringatan Stok Menipis
+                            </h4>
+                            <span class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200">
+                                {{ $lowStockCount }} Produk
+                            </span>
+                        </div>
+
+                        @if($lowStockCount > 0)
+                            <div class="max-h-72 overflow-y-auto space-y-2 pr-1">
+                                @foreach($lowStockProducts as $lp)
+                                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-bg-light/80 border border-gray-light hover:bg-orange-50/60 transition-colors">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <img src="{{ \App\Http\Controllers\ProductData::img($lp->image, 80, 80) }}" alt="" class="w-10 h-10 rounded-lg object-contain bg-white p-1 border border-gray-light flex-shrink-0" />
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-bold text-gray-dark truncate">{{ $lp->name }}</p>
+                                                <p class="text-[10px] font-semibold {{ $lp->stock <= 0 ? 'text-red-600 font-extrabold' : ($lp->stock <= 20 ? 'text-red-500 font-bold' : 'text-orange-600') }}">
+                                                    {{ $lp->stock <= 0 ? 'Stok Habis (0 ' . $lp->unit . ')' : 'Sisa: ' . $lp->stock . ' ' . $lp->unit }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <a href="{{ route('admin.stock') }}" class="flex-shrink-0 px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-hover transition-colors shadow-sm">
+                                            + Stok
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="py-8 text-center text-gray-muted">
+                                <span class="material-symbols-rounded text-green-500 text-3xl mb-1">check_circle</span>
+                                <p class="text-xs font-semibold text-gray-dark">Semua Stok Aman</p>
+                                <p class="text-[10px] text-gray-muted mt-0.5">Tidak ada produk dengan stok di bawah 50 unit.</p>
+                            </div>
+                        @endif
+
+                        <div class="border-t border-bg-light pt-3 mt-3 text-center">
+                            <a href="{{ route('admin.stock') }}" class="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1">
+                                Kelola Manajemen Stok <span class="material-symbols-rounded text-sm">arrow_forward</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </header>
             

@@ -134,6 +134,47 @@
 
     <!-- Main Content Area -->
     <main class="flex-grow">
+        <!-- Flash Session Notifications & Stock Alerts -->
+        <div class="max-w-7xl mx-auto px-6 pt-4">
+            @if(session('success'))
+                <div class="mb-4 p-4 rounded-2xl bg-green-50 border border-green-200 text-green-800 text-sm font-semibold flex items-center justify-between shadow-soft">
+                    <div class="flex items-center gap-2.5">
+                        <span class="material-symbols-rounded text-lg text-green-600">check_circle</span>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mb-4 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-semibold flex items-center justify-between shadow-soft">
+                    <div class="flex items-center gap-2.5">
+                        <span class="material-symbols-rounded text-lg text-red-600">error</span>
+                        <span>{{ session('error') }}</span>
+                    </div>
+                </div>
+            @endif
+            @if(session('warning'))
+                <div class="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold flex items-center justify-between shadow-soft">
+                    <div class="flex items-center gap-2.5">
+                        <span class="material-symbols-rounded text-lg text-amber-600">warning</span>
+                        <span>{{ session('warning') }}</span>
+                    </div>
+                </div>
+            @endif
+            @if($errors->any())
+                <div class="mb-4 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-semibold space-y-1 shadow-soft">
+                    <div class="flex items-center gap-2.5 font-bold mb-1">
+                        <span class="material-symbols-rounded text-lg text-red-600">error</span>
+                        <span>Terjadi Kesalahan:</span>
+                    </div>
+                    <ul class="list-disc list-inside text-xs pl-7 space-y-0.5">
+                        @foreach($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+        </div>
+
         @yield('content')
     </main>
 

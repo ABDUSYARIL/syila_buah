@@ -72,10 +72,15 @@
                                 <a href="{{ route('product.detail', $p['id']) }}" class="block">
                                     <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                                         <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
-                                        <div class="absolute top-2 left-2">
+                                        <div class="absolute top-2 left-2 flex flex-col gap-1">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
                                                 Stok: {{ $p->stock }} {{ $p->unit }}
                                             </span>
+                                            @if($p['stock'] <= 50)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold {{ $p['stock'] <= 20 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-orange-50 text-orange-600 border border-orange-100' }}">
+                                                    {{ $p['stock'] <= 20 ? 'Hampir Habis' : 'Stok Terbatas' }}
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </a>
@@ -142,10 +147,15 @@
                             <a href="{{ route('product.detail', $p['id']) }}" class="block">
                                 <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                                     <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
-                                    <div class="absolute top-2 left-2">
+                                    <div class="absolute top-2 left-2 flex flex-col gap-1">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
                                             Stok: {{ $p->stock }} {{ $p->unit }}
                                         </span>
+                                        @if($p['stock'] <= 50)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold {{ $p['stock'] <= 20 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-orange-50 text-orange-600 border border-orange-100' }}">
+                                                {{ $p['stock'] <= 20 ? 'Hampir Habis' : 'Stok Terbatas' }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </a>
@@ -209,10 +219,15 @@
                             <a href="{{ route('product.detail', $p['id']) }}" class="block">
                                 <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
                                     <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
-                                    <div class="absolute top-2 left-2">
+                                    <div class="absolute top-2 left-2 flex flex-col gap-1">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
                                             Stok: {{ $p->stock }} {{ $p->unit }}
                                         </span>
+                                        @if($p['stock'] <= 50)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold {{ $p['stock'] <= 20 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-orange-50 text-orange-600 border border-orange-100' }}">
+                                                {{ $p['stock'] <= 20 ? 'Hampir Habis' : 'Stok Terbatas' }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </a>
