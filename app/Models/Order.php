@@ -18,7 +18,8 @@ class Order extends Model
         'subtotal',
         'total',
         'status', // Menunggu Pembayaran, Menunggu Verifikasi, Diproses, Dikirim, Selesai, Dibatalkan
-        'notes'
+        'notes',
+        'cancel_reason'
     ];
 
     public function user()

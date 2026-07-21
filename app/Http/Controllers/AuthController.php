@@ -49,7 +49,9 @@ class AuthController extends Controller
                 return back()->with('error', 'Akun Anda tidak aktif.')->withInput();
             }
 
-            // --- LOGIKA UTAMA PEMISAH TOMBOL LOGIN ---
+            // Catat waktu login terbaru
+            $user->last_login_at = now();
+            $user->save();
 
             // JIKA USER MENEKAN TOMBOL "MASUK SEBAGAI ADMIN"
             if ($request->has('login_admin')) {

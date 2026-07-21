@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use App\Models\StockEntry;
 use App\Models\StockAdjustment;
@@ -58,7 +59,8 @@ class AdminController extends Controller
             $query->where('name', 'like', '%' . $search . '%');
         }
 
-        $products = $query->get();
+        // Diurutkan berdasarkan aktivitas terbaru (updated_at terbaru)
+        $products = $query->orderBy('updated_at', 'desc')->get();
         $categories = Category::all();
 
         return view('admin.products', compact('products', 'categories', 'search', 'categoryName'));
@@ -245,16 +247,20 @@ class AdminController extends Controller
 
         // Mengambil nilai filter pencarian dan status dari parameter URL
         $search = $request->query('search', '');
-        $status = $request->query('status', 'Semua');
+        $status = $request->query('status', 'Menunggu Verifikasi');
+        if ($status === 'Semua' || $status === 'Menunggu Pembayaran') {
+            $status = 'Menunggu Verifikasi';
+        }
         
         // ── BADGE COUNT: Hitung jumlah pesanan per status untuk ditampilkan sebagai notif angka ──
-        // Diambil secara efisien dengan groupBy tanpa memuat semua data
         $statusCounts = Order::selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status')
             ->toArray();
-        // Tambahkan total 'Semua' sebagai jumlah keseluruhan
-        $statusCounts['Semua'] = array_sum($statusCounts);
+        
+        // Gabungkan count Menunggu Pembayaran & Menunggu Verifikasi
+        $pendingTotal = ($statusCounts['Menunggu Verifikasi'] ?? 0) + ($statusCounts['Menunggu Pembayaran'] ?? 0);
+        $statusCounts['Menunggu Verifikasi'] = $pendingTotal;
 
         // Membangun query pesanan beserta relasi pengguna, pembayaran, dan item pesanan
         $query = Order::with([
@@ -263,8 +269,10 @@ class AdminController extends Controller
             'orderItems.product' // Relasi ke item pesanan beserta produknya
         ])->orderBy('created_at', 'desc'); // Urutkan dari yang terbaru
 
-        // Terapkan filter status jika bukan 'Semua'
-        if ($status !== 'Semua') {
+        // Terapkan filter status
+        if ($status === 'Menunggu Verifikasi') {
+            $query->whereIn('status', ['Menunggu Verifikasi', 'Menunggu Pembayaran']);
+        } else {
             $query->where('status', $status);
         }
 
@@ -291,6 +299,7 @@ class AdminController extends Controller
                 'status'   => $o->status,               // Status pesanan (Diproses, Dikirim, dll)
                 'address'  => $o->shipping_address,     // Alamat pengiriman
                 'method'   => $o->shipping_method,      // Metode pengiriman
+                'cancel_reason' => $o->cancel_reason,   // Alasan pembatalan
                 // Detail item yang dipesan beserta harga dan subtotal masing-masing
                 'items'    => $o->orderItems->map(function($item) {
                     return [
@@ -307,106 +316,234 @@ class AdminController extends Controller
         return view('admin.orders', compact('orders', 'search', 'status', 'statusCounts', 'retentionDays'));
     }
 
-    // Fungsi untuk menampilkan daftar admin
-    public function admins()
+    // Fungsi untuk menampilkan Kelola User (Hanya Pelanggan & Admin)
+    public function users(Request $request)
     {
-        // Mengambil semua data pengguna yang memiliki role 'admin'
-        $admins = User::where('role', 'admin')->get();
-        
-        // Melakukan pemetaan data agar sesuai dengan variabel tampilan di view
-        $admins = $admins->map(function($a) {
+        // Pengaturan Inaktivitas Akun (Retention Days)
+        $inactivityDays = (int) session('user_inactivity_days', 30);
+        if ($inactivityDays > 0) {
+            $threshold = now()->subDays($inactivityDays);
+            // Nonaktifkan otomatis akun pelanggan yang tidak aktif melebihi batas waktu
+            User::whereIn('role', ['pelanggan', 'customer', 'user'])
+                ->where('status', 'aktif')
+                ->where(function($q) use ($threshold) {
+                    $q->where('last_login_at', '<', $threshold)
+                      ->orWhere(function($sub) use ($threshold) {
+                          $sub->whereNull('last_login_at')
+                              ->where('updated_at', '<', $threshold);
+                      });
+                })
+                ->update(['status' => 'tidak aktif']);
+
+            // Hapus otomatis jika fitur auto-delete aktif
+            if (session('user_auto_delete_inactive', false)) {
+                User::whereIn('role', ['pelanggan', 'customer', 'user'])
+                    ->where('status', 'tidak aktif')
+                    ->delete();
+            }
+        }
+
+        $roleFilter = $request->query('role', 'customer');
+        if ($roleFilter === 'pelanggan') {
+            $roleFilter = 'customer';
+        }
+
+        $search = $request->query('search', '');
+
+        $query = User::query();
+
+        if ($roleFilter === 'admin') {
+            $roleFilter = 'admin';
+            $query->where('role', 'admin');
+        } else {
+            $roleFilter = 'customer';
+            $query->whereIn('role', ['pelanggan', 'customer', 'user']);
+        }
+
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%')
+                  ->orWhere('phone', 'like', '%' . $search . '%');
+            });
+        }
+
+        $allUsers = $query->orderBy('created_at', 'desc')->get();
+
+        $users = $allUsers->map(function($u) {
+            $isCustomer = in_array(strtolower($u->role), ['pelanggan', 'customer', 'user']);
+            $lastActiveDate = $u->last_login_at ?? $u->updated_at;
             return [
-                'id' => $a->id, // MENYERTAKAN ID DARI DATABASE agar tombol Edit/Hapus berfungsi akurat
-                'name' => $a->name,
-                'email' => $a->email,
-                'role' => ucfirst($a->role) . ' Admin',
-                'phone' => $a->phone ?? '-',
-                'status' => $a->status, // Mengirim status asli ('aktif' / 'tidak aktif') ke view
-                'lastLogin' => $a->updated_at->format('d M Y H:i')
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $isCustomer ? 'Pelanggan' : 'Admin',
+                'raw_role' => $isCustomer ? 'customer' : 'admin',
+                'phone' => $u->phone ?? '-',
+                'status' => $u->status ?? 'aktif',
+                'lastLogin' => $lastActiveDate ? $lastActiveDate->format('d M Y H:i') : '-'
             ];
         });
 
-        // Mengirim daftar admin ke view admin/admins
-        return view('admin.admins', compact('admins'));
+        $adminCount = User::where('role', 'admin')->count();
+        $customerCount = User::whereIn('role', ['pelanggan', 'customer', 'user'])->count();
+        $inactiveCustomerCount = User::whereIn('role', ['pelanggan', 'customer', 'user'])->where('status', 'tidak aktif')->count();
+
+        return view('admin.users', compact(
+            'users', 
+            'roleFilter', 
+            'search', 
+            'adminCount', 
+            'customerCount', 
+            'inactiveCustomerCount',
+            'inactivityDays'
+        ));
     }
 
-    // Fungsi untuk menyimpan data admin baru (Create)
-    public function storeAdmin(Request $request)
+    public function admins(Request $request)
     {
-        // Validasi input data admin baru
+        return $this->users($request);
+    }
+
+    // Hanya Admin yang bisa ditambahkan oleh Admin (Pengguna/Pelanggan tidak bisa ditambah oleh Admin)
+    public function storeUser(Request $request)
+    {
         $data = $request->validate([
-            'name' => 'required|string|max:255', // Nama wajib diisi, maksimal 255 karakter
-            'email' => 'required|email|max:255|unique:users,email', // Email wajib diisi, valid, unik di tabel users
-            'phone' => 'nullable|string|max:30', // Nomor HP opsional, teks, maksimal 30 karakter
-            'password' => 'required|string|min:8|confirmed', // Password wajib diisi, minimal 8 karakter, harus sama dengan kolom konfirmasi
-            'status' => 'required|in:aktif,tidak aktif', // Status wajib diisi (aktif/tidak aktif)
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'phone' => 'nullable|string|max:30',
+            'password' => 'required|string|min:8|confirmed',
+            'status' => 'required|in:aktif,tidak aktif',
         ], [
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
-        // Menyimpan data admin baru ke database
         User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
-            'password' => Hash::make($data['password']), // Enkripsi password sebelum disimpan
             'role' => 'admin', // Mengunci role sebagai admin
+            'password' => Hash::make($data['password']),
             'status' => $data['status'],
         ]);
 
-        // Mengalihkan kembali dengan rute admin.admins disertai pesan flash sukses
-        return redirect()->route('admin.admins')->with('success', 'Admin baru berhasil ditambahkan.');
+        return redirect()->route('admin.users', ['role' => 'admin'])
+            ->with('success', 'Admin baru berhasil ditambahkan.');
     }
 
-    // Fungsi untuk memperbarui data admin (Update)
-    public function updateAdmin(Request $request, $id)
+    public function storeAdmin(Request $request)
     {
-        // Mencari data admin berdasarkan id di tabel users
-        $admin = User::findOrFail($id);
-        
-        // Validasi input data admin
+        return $this->storeUser($request);
+    }
+
+    // Memperbarui data user
+    // - Jika Pelanggan: Admin HANYA dapat mengubah status akun (Aktif / Tidak Aktif)
+    // - Jika Admin: Admin dapat mengubah Nama, Email, HP, Status, dan Password
+    public function updateUser(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $isCustomer = in_array(strtolower($user->role), ['pelanggan', 'customer', 'user']);
+
+        if ($isCustomer) {
+            // Pelanggan: HANYA ubah status
+            $request->validate([
+                'status' => 'required|in:aktif,tidak aktif',
+            ]);
+            $user->status = $request->input('status');
+            $user->save();
+
+            return redirect()->route('admin.users', ['role' => 'customer'])
+                ->with('success', 'Status akun pelanggan ' . $user->name . ' berhasil diubah menjadi ' . ucfirst($user->status) . '.');
+        }
+
+        // Admin: Ubah data lengkap
         $data = $request->validate([
-            'name' => 'required|string|max:255', // Nama wajib diisi, maksimal 255 karakter
-            'email' => 'required|email|max:255|unique:users,email,' . $id, // Email unik kecuali miliknya sendiri
-            'phone' => 'nullable|string|max:30', // Nomor HP opsional
-            'password' => 'nullable|string|min:8|confirmed', // Password opsional saat edit (diisi hanya jika mau mengganti password)
-            'status' => 'required|in:aktif,tidak aktif', // Status wajib diisi
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $id,
+            'phone' => 'nullable|string|max:30',
+            'password' => 'nullable|string|min:8|confirmed',
+            'status' => 'required|in:aktif,tidak aktif',
         ], [
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
-        // Memperbarui atribut-atribut data admin
-        $admin->name = $data['name'];
-        $admin->email = $data['email'];
-        $admin->phone = $data['phone'] ?? null;
-        $admin->status = $data['status'];
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+        $user->phone = $data['phone'] ?? null;
+        $user->status = $data['status'];
         
-        // Hanya mengubah password jika password baru diisi oleh admin
         if (!empty($data['password'])) {
-            $admin->password = Hash::make($data['password']);
+            $user->password = Hash::make($data['password']);
         }
         
-        $admin->save(); // Menyimpan perubahan data admin ke database
+        $user->save();
 
-        // Mengalihkan kembali dengan rute admin.admins disertai pesan flash sukses
-        return redirect()->route('admin.admins')->with('success', 'Data admin berhasil diperbarui.');
+        return redirect()->route('admin.users', ['role' => 'admin'])
+            ->with('success', 'Data admin berhasil diperbarui.');
     }
 
-    // Fungsi untuk menghapus data admin (Delete)
-    public function deleteAdmin($id)
+    public function updateAdmin(Request $request, $id)
     {
-        // Mencari data admin berdasarkan id di tabel users
-        $admin = User::findOrFail($id);
+        return $this->updateUser($request, $id);
+    }
+
+    // Toggle status Aktif / Tidak Aktif secara cepat
+    public function toggleUserStatus($id)
+    {
+        $user = User::findOrFail($id);
+        $user->status = ($user->status === 'aktif') ? 'tidak aktif' : 'aktif';
+        $user->save();
+
+        $roleParam = in_array(strtolower($user->role), ['pelanggan', 'customer', 'user']) ? 'customer' : 'admin';
+
+        return redirect()->route('admin.users', ['role' => $roleParam])
+            ->with('success', 'Status akun ' . $user->name . ' diubah menjadi ' . ucfirst($user->status) . '.');
+    }
+
+    // Pengaturan inaktivitas & Pembersihan manual / otomatis akun pelanggan mati (tidak aktif)
+    public function clearInactiveUsers(Request $request)
+    {
+        $inactivityDays = (int) $request->input('inactivity_days', 30);
+        $autoDelete = $request->has('auto_delete') ? true : false;
+
+        session([
+            'user_inactivity_days' => $inactivityDays,
+            'user_auto_delete_inactive' => $autoDelete
+        ]);
+
+        $deletedCount = 0;
+        if ($request->has('action_delete_now')) {
+            // Hapus manual semua akun pelanggan yang berstatus 'tidak aktif'
+            $deletedCount = User::whereIn('role', ['pelanggan', 'customer', 'user'])
+                ->where('status', 'tidak aktif')
+                ->delete();
+        }
+
+        $msg = "Pengaturan batas inaktivitas akun disimpan ({$inactivityDays} hari).";
+        if ($deletedCount > 0) {
+            $msg .= " Berhasil menghapus {$deletedCount} akun pelanggan mati (tidak aktif).";
+        }
+
+        return redirect()->route('admin.users', ['role' => 'customer'])->with('success', $msg);
+    }
+
+    // Fungsi untuk menghapus data user (Delete)
+    public function deleteUser($id)
+    {
+        $user = User::findOrFail($id);
         
-        // Mencegah penghapusan akun milik sendiri demi alasan keamanan
-        if ($admin->id === Auth::id()) {
+        if ($user->id === Auth::id()) {
             return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 
-        $admin->delete(); // Menghapus data admin dari database
+        $user->delete();
 
-        // Mengalihkan kembali dengan rute admin.admins disertai pesan flash sukses
-        return redirect()->route('admin.admins')->with('success', 'Admin berhasil dihapus.');
+        return redirect()->route('admin.users')->with('success', 'User berhasil dihapus.');
+    }
+
+    public function deleteAdmin($id)
+    {
+        return $this->deleteUser($id);
     }
 
     public function reports(Request $request)
@@ -415,19 +552,103 @@ class AdminController extends Controller
         $salesData = ProductData::getSalesData($period);
         $topProducts = ProductData::getTopProducts($period);
 
+        // Mengambil data riwayat stok masuk dan keluar secara riil dari database (StockHistory)
+        $stockQuery = StockHistory::with('product')->orderBy('created_at', 'desc');
+
+        if ($period === 'Harian') {
+            $start = Carbon::now()->startOfWeek();
+            $end = Carbon::now()->endOfWeek();
+            $stockQuery->whereBetween('created_at', [$start, $end]);
+        } elseif ($period === 'Tahunan') {
+            $stockQuery->whereYear('created_at', '>=', Carbon::now()->year - 4);
+        } else {
+            $stockQuery->whereYear('created_at', Carbon::now()->year);
+        }
+
+        $allStockHistories = $stockQuery->get();
+
+        // Memisahkan Riwayat Stok Masuk (qty > 0) dan Stok Keluar (qty < 0)
+        $stockMasukList = $allStockHistories->filter(fn($h) => $h->qty > 0);
+        $stockKeluarList = $allStockHistories->filter(fn($h) => $h->qty < 0);
+
+        $totalStockMasuk = $stockMasukList->sum('qty');
+        $totalStockKeluar = abs($stockKeluarList->sum('qty'));
+
         $totalRevenue = collect($salesData)->sum('revenue');
         $totalOrders = collect($salesData)->sum('orders');
         $averageOrder = $totalOrders ? round($totalRevenue / $totalOrders) : 0;
-        $productsSold = $totalOrders * 3;
+        
+        $productsSold = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereIn('orders.status', ['Menunggu Verifikasi', 'Diproses', 'Dikirim', 'Selesai'])
+            ->sum('order_items.qty');
 
         $stats = [
-            ['label' => 'Total Pendapatan', 'value' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'), 'change' => '+18%', 'color' => 'text-primary'],
-            ['label' => 'Total Pesanan', 'value' => number_format($totalOrders, 0, ',', '.'), 'change' => '+23%', 'color' => 'text-blue-600'],
-            ['label' => 'Rata-rata Pesanan', 'value' => 'Rp ' . number_format($averageOrder, 0, ',', '.'), 'change' => '+5%', 'color' => 'text-accent'],
-            ['label' => 'Produk Terjual', 'value' => number_format($productsSold, 0, ',', '.') . ' unit', 'change' => '+31%', 'color' => 'text-purple-600'],
+            ['label' => 'Total Pendapatan DB', 'value' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'), 'change' => 'Realisasi DB', 'color' => 'text-primary'],
+            ['label' => 'Total Pesanan DB', 'value' => number_format($totalOrders, 0, ',', '.'), 'change' => 'Realisasi DB', 'color' => 'text-blue-600'],
+            ['label' => 'Total Stok Masuk DB', 'value' => number_format($totalStockMasuk, 0, ',', '.') . ' unit', 'change' => 'Stok Masuk', 'color' => 'text-green-600'],
+            ['label' => 'Total Stok Keluar DB', 'value' => number_format($totalStockKeluar, 0, ',', '.') . ' unit', 'change' => 'Stok Keluar', 'color' => 'text-red-500'],
         ];
 
-        return view('admin.reports', compact('salesData', 'topProducts', 'period', 'stats'));
+        return view('admin.reports', compact(
+            'salesData', 
+            'topProducts', 
+            'period', 
+            'stats', 
+            'stockMasukList', 
+            'stockKeluarList', 
+            'totalStockMasuk', 
+            'totalStockKeluar'
+        ));
+    }
+
+    // Fungsi untuk menampilkan halaman cetak PDF dokumen laporan berbasis DB lengkap
+    public function printReport(Request $request)
+    {
+        $period = $request->query('period', 'Bulanan');
+        $salesData = ProductData::getSalesData($period);
+        $topProducts = ProductData::getTopProducts($period);
+
+        $stockQuery = StockHistory::with('product')->orderBy('created_at', 'desc');
+
+        if ($period === 'Harian') {
+            $start = Carbon::now()->startOfWeek();
+            $end = Carbon::now()->endOfWeek();
+            $stockQuery->whereBetween('created_at', [$start, $end]);
+        } elseif ($period === 'Tahunan') {
+            $stockQuery->whereYear('created_at', '>=', Carbon::now()->year - 4);
+        } else {
+            $stockQuery->whereYear('created_at', Carbon::now()->year);
+        }
+
+        $allStockHistories = $stockQuery->get();
+
+        $stockMasukList = $allStockHistories->filter(fn($h) => $h->qty > 0);
+        $stockKeluarList = $allStockHistories->filter(fn($h) => $h->qty < 0);
+
+        $totalStockMasuk = $stockMasukList->sum('qty');
+        $totalStockKeluar = abs($stockKeluarList->sum('qty'));
+
+        $totalRevenue = collect($salesData)->sum('revenue');
+        $totalOrders = collect($salesData)->sum('orders');
+        $averageOrder = $totalOrders ? round($totalRevenue / $totalOrders) : 0;
+
+        $productsSold = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereIn('orders.status', ['Menunggu Verifikasi', 'Diproses', 'Dikirim', 'Selesai'])
+            ->sum('order_items.qty');
+
+        return view('admin.reports-print', compact(
+            'salesData', 
+            'topProducts', 
+            'period', 
+            'totalRevenue',
+            'totalOrders',
+            'averageOrder',
+            'productsSold',
+            'stockMasukList', 
+            'stockKeluarList', 
+            'totalStockMasuk', 
+            'totalStockKeluar'
+        ));
     }
 
     public function acceptOrder($invoice)
@@ -447,9 +668,18 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'Pesanan ' . $order->invoice_no . ' diterima dan diproses.');
     }
 
-    // Fungsi untuk memproses penolakan / pembatalan pesanan oleh admin
-    public function rejectOrder($invoice)
+    // Fungsi untuk memproses penolakan / pembatalan pesanan oleh admin (WAJIB MEMILIKI ALASAN)
+    public function rejectOrder(Request $request, $invoice)
     {
+        // Validasi alasan pembatalan
+        $request->validate([
+            'cancel_reason' => 'required|string|max:500',
+        ], [
+            'cancel_reason.required' => 'Alasan pembatalan pesanan wajib diisi.',
+        ]);
+
+        $cancelReason = trim($request->input('cancel_reason'));
+
         // Mencari data pesanan berdasarkan invoice beserta relasi item dan produk secara riil
         $order = Order::with('orderItems.product')->where('invoice_no', $invoice)->firstOrFail();
 
@@ -457,8 +687,9 @@ class AdminController extends Controller
         if ($order->status !== 'Dibatalkan') {
             \DB::beginTransaction(); // Memulai transaksi database agar operasi atomik/aman
             try {
-                // Mengubah status pesanan menjadi Dibatalkan
+                // Mengubah status pesanan menjadi Dibatalkan & menyimpan alasan pembatalan
                 $order->status = 'Dibatalkan';
+                $order->cancel_reason = $cancelReason;
                 $order->save();
 
                 // Mengubah status pembayaran pesanan menjadi Dibatalkan
@@ -492,7 +723,7 @@ class AdminController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', 'Pesanan ' . $order->invoice_no . ' berhasil dibatalkan dan stok dikembalikan.');
+        return redirect()->back()->with('success', 'Pesanan ' . $order->invoice_no . ' berhasil dibatalkan (Alasan: ' . $cancelReason . ') dan stok dikembalikan.');
     }
 
     public function shipOrder($invoice)

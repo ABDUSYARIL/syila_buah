@@ -57,12 +57,22 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::post('/orders/{invoice}/reject', [AdminController::class, 'rejectOrder'])->name('orders.reject');
     Route::post('/orders/{invoice}/ship', [AdminController::class, 'shipOrder'])->name('orders.ship');
     Route::post('/orders/{invoice}/complete', [AdminController::class, 'completeOrder'])->name('orders.complete');
-    // Rute CRUD Admin: Daftar, Simpan Baru, Update (Ubah), dan Hapus (Delete)
-    Route::get('/admins', [AdminController::class, 'admins'])->name('admins'); // Halaman daftar admin
-    Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admins.store'); // Aksi tambah admin baru
-    Route::post('/admins/update/{id}', [AdminController::class, 'updateAdmin'])->name('admins.update'); // Aksi update data admin
-    Route::post('/admins/delete/{id}', [AdminController::class, 'deleteAdmin'])->name('admins.delete'); // Aksi hapus data admin
+    // Rute Kelola User (Admin & Pengguna / Pelanggan)
+    Route::get('/users', [AdminController::class, 'users'])->name('users'); // Halaman daftar user (admin & pelanggan)
+    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store'); // Aksi tambah user (Admin baru)
+    Route::post('/users/update/{id}', [AdminController::class, 'updateUser'])->name('users.update'); // Aksi update data user
+    Route::post('/users/delete/{id}', [AdminController::class, 'deleteUser'])->name('users.delete'); // Aksi hapus data user
+    Route::post('/users/toggle-status/{id}', [AdminController::class, 'toggleUserStatus'])->name('users.toggle-status'); // Aksi toggle status aktif/tidak aktif
+    Route::post('/users/clear-inactive', [AdminController::class, 'clearInactiveUsers'])->name('users.clear-inactive'); // Aksi pengaturan inaktivitas & hapus akun mati
+
+    // Backward compatibility alias rute /admins
+    Route::get('/admins', function() { return redirect()->route('admin.users'); })->name('admins');
+    Route::post('/admins', [AdminController::class, 'storeUser'])->name('admins.store');
+    Route::post('/admins/update/{id}', [AdminController::class, 'updateUser'])->name('admins.update');
+    Route::post('/admins/delete/{id}', [AdminController::class, 'deleteUser'])->name('admins.delete');
+    
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports'); // Halaman laporan penjualan
+    Route::get('/reports/print', [AdminController::class, 'printReport'])->name('reports.print'); // Halaman cetak PDF laporan DB
     
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
     Route::get('/change-password', [AdminController::class, 'changePassword'])->name('change-password');

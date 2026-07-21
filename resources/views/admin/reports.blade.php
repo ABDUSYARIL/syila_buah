@@ -93,12 +93,15 @@
 
     <div class="flex items-center justify-between mb-6 print:hidden">
         <div>
-            <h1 class="text-2xl font-bold text-gray-dark">Laporan Penjualan</h1>
-            <p class="text-sm text-gray-muted">Analitik dan statistik bisnis Syila Buah</p>
+            <h1 class="text-2xl font-bold text-gray-dark">Laporan Penjualan & Pergerakan Stok</h1>
+            <p class="text-sm text-gray-muted">Analitik penjualan dan riwayat stok real-time berbasis database Toko Syila Buah</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="window.print()" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-3.5 py-2 text-xs cursor-pointer transition-colors shadow-sm">
-                <span class="material-symbols-rounded text-sm">print</span> Cetak PDF
+            <a href="{{ route('admin.reports.print', ['period' => $period]) }}" target="_blank" class="inline-flex items-center justify-center gap-2 font-bold rounded-xl bg-primary text-white hover:bg-primary-hover px-4 py-2.5 text-xs cursor-pointer transition-all shadow-soft hover:shadow-soft-hover">
+                <span class="material-symbols-rounded text-sm">print</span> Cetak Laporan DB (PDF)
+            </a>
+            <button onclick="window.print()" class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl border border-primary text-primary hover:bg-green-light px-3.5 py-2.5 text-xs cursor-pointer transition-colors shadow-sm">
+                <span class="material-symbols-rounded text-sm">picture_as_pdf</span> Cetak Layar
             </button>
         </div>
     </div>
@@ -121,7 +124,7 @@
             <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-5 hover:shadow-soft-hover transition-all duration-300">
                 <p class="text-xs text-gray-muted mb-1 font-medium">{{ $stat['label'] }}</p>
                 <p class="text-xl font-extrabold {{ $stat['color'] }} leading-none tracking-tight">{{ $stat['value'] }}</p>
-                <p class="text-[10px] text-primary font-bold mt-2">{{ $stat['change'] }} vs periode sebelumnya</p>
+                <p class="text-[10px] text-primary font-bold mt-2">{{ $stat['change'] }}</p>
             </div>
         @endforeach
     </div>
@@ -146,7 +149,6 @@
     </div>
 
     <!-- Detailed Sales Data Table (Rincian Tabel Penjualan Dinamis) -->
-    {{-- Tabel rincian data penjualan per periode --}}
     <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden mt-6">
         <div class="p-6 border-b border-bg-light">
             <h3 class="font-bold text-gray-dark text-base">Rincian Data Penjualan</h3>
@@ -165,7 +167,6 @@
                 <tbody class="divide-y divide-bg-light">
                     @foreach($salesData as $row)
                         @php
-                            // Menghitung rata-rata pendapatan per pesanan
                             $avg = $row['orders'] > 0 ? $row['revenue'] / $row['orders'] : 0;
                         @endphp
                         <tr class="hover:bg-bg-light/50 transition-colors">
@@ -181,7 +182,6 @@
     </div>
 
     <!-- Top Products Table (Tabel Produk Terlaris Dinamis) -->
-    {{-- Tabel produk dengan penjualan unit tertinggi --}}
     <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden mt-6">
         <div class="p-6 border-b border-bg-light">
             <h3 class="font-bold text-gray-dark text-base">Produk Terlaris</h3>
@@ -206,6 +206,93 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Riwayat Stok Masuk & Keluar (Data Real DB) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <!-- Tabel Riwayat Stok Masuk -->
+        <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden">
+            <div class="p-5 border-b border-bg-light flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-gray-dark text-base flex items-center gap-2">
+                        <span class="material-symbols-rounded text-green-600">south_west</span>
+                        Riwayat Stok Masuk (DB)
+                    </h3>
+                    <p class="text-xs text-gray-muted mt-0.5">Log produk masuk dari pemasok/retur pada periode {{ $period }}</p>
+                </div>
+                <span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-green-light text-primary border border-primary/20">
+                    Total: {{ number_format($totalStockMasuk, 0, ',', '.') }} unit
+                </span>
+            </div>
+            <div class="overflow-x-auto max-h-80 overflow-y-auto">
+                <table class="w-full text-xs">
+                    <thead class="bg-bg-light sticky top-0">
+                        <tr class="border-b border-gray-light text-left text-gray-muted font-semibold uppercase">
+                            <th class="py-2.5 px-4">Tanggal</th>
+                            <th class="py-2.5 px-4">Produk</th>
+                            <th class="py-2.5 px-4 text-center">Jumlah</th>
+                            <th class="py-2.5 px-4">Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-bg-light">
+                        @forelse($stockMasukList as $sm)
+                            <tr class="hover:bg-bg-light/50 transition-colors">
+                                <td class="py-2.5 px-4 font-medium text-gray-muted">{{ $sm->created_at->format('d M Y H:i') }}</td>
+                                <td class="py-2.5 px-4 font-bold text-gray-dark">{{ $sm->product->name ?? '-' }}</td>
+                                <td class="py-2.5 px-4 text-center font-bold text-green-600">+{{ $sm->qty }} {{ $sm->product->unit ?? 'unit' }}</td>
+                                <td class="py-2.5 px-4 text-gray-muted">{{ $sm->notes }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-gray-muted font-medium">Tidak ada riwayat stok masuk pada periode ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabel Riwayat Stok Keluar -->
+        <div class="bg-white rounded-2xl shadow-soft border border-gray-light overflow-hidden">
+            <div class="p-5 border-b border-bg-light flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-gray-dark text-base flex items-center gap-2">
+                        <span class="material-symbols-rounded text-red-500">north_east</span>
+                        Riwayat Stok Keluar (DB)
+                    </h3>
+                    <p class="text-xs text-gray-muted mt-0.5">Log produk keluar untuk penjualan/opname pada periode {{ $period }}</p>
+                </div>
+                <span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-200">
+                    Total: {{ number_format($totalStockKeluar, 0, ',', '.') }} unit
+                </span>
+            </div>
+            <div class="overflow-x-auto max-h-80 overflow-y-auto">
+                <table class="w-full text-xs">
+                    <thead class="bg-bg-light sticky top-0">
+                        <tr class="border-b border-gray-light text-left text-gray-muted font-semibold uppercase">
+                            <th class="py-2.5 px-4">Tanggal</th>
+                            <th class="py-2.5 px-4">Produk</th>
+                            <th class="py-2.5 px-4 text-center">Jumlah</th>
+                            <th class="py-2.5 px-4">Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-bg-light">
+                        @forelse($stockKeluarList as $sk)
+                            <tr class="hover:bg-bg-light/50 transition-colors">
+                                <td class="py-2.5 px-4 font-medium text-gray-muted">{{ $sk->created_at->format('d M Y H:i') }}</td>
+                                <td class="py-2.5 px-4 font-bold text-gray-dark">{{ $sk->product->name ?? '-' }}</td>
+                                <td class="py-2.5 px-4 text-center font-bold text-red-600">{{ $sk->qty }} {{ $sk->product->unit ?? 'unit' }}</td>
+                                <td class="py-2.5 px-4 text-gray-muted">{{ $sk->notes }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-gray-muted font-medium">Tidak ada riwayat stok keluar pada periode ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

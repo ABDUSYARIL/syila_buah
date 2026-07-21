@@ -11,11 +11,70 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     
-    <!-- Styles & Scripts via Vite -->
+    <!-- Styles & Scripts via Vite & Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4CAF50',
+                        'primary-hover': '#43A047',
+                        'primary-active': '#388E3C',
+                        accent: '#FF9800',
+                        'accent-hover': '#F57C00',
+                        'gray-dark': '#2D3748',
+                        'gray-muted': '#718096',
+                        'gray-light': '#E2E8F0',
+                        'bg-light': '#F8F9FA',
+                        'green-light': '#E8F5E9',
+                        'green-dark': '#1B5E20'
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        soft: '0 8px 30px rgba(0, 0, 0, 0.04)',
+                        'soft-hover': '0 20px 50px rgba(76, 175, 80, 0.12)',
+                        '3d': '0 15px 35px rgba(0, 0, 0, 0.05), 0 5px 15px rgba(0, 0, 0, 0.02)'
+                    }
+                }
+            }
+        }
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <!-- AlpineJS -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Smooth Page Transition Styles -->
+    <style>
+        @keyframes calmPageEnter {
+            0% {
+                opacity: 0;
+                pointer-events: none;
+            }
+            85% {
+                opacity: 0.95;
+                pointer-events: none;
+            }
+            100% {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        .page-animate {
+            animation: calmPageEnter 0.65s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            will-change: opacity;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        a, button {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
 </head>
 <body class="bg-bg-light text-gray-dark font-sans min-h-screen flex flex-col antialiased">
     <!-- Navbar -->
@@ -133,7 +192,7 @@
     </nav>
 
     <!-- Main Content Area -->
-    <main class="flex-grow">
+    <main class="flex-grow page-animate">
         <!-- Flash Session Notifications & Stock Alerts -->
         <div class="max-w-7xl mx-auto px-6 pt-4">
             @if(session('success'))
@@ -218,6 +277,27 @@
         </div>
     </footer>
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll('nav a, footer a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (!href) return;
+                    const isExternal = href.startsWith('http') && !href.includes(window.location.hostname);
+                    const isBlank = this.getAttribute('target') === '_blank';
+                    const isSpecial = href.startsWith('#') || href.startsWith('javascript:');
+
+                    if (!isExternal && !isBlank && !isSpecial && href !== '#') {
+                        const mainContent = document.querySelector('main');
+                        if (mainContent) {
+                            mainContent.style.opacity = '0.7';
+                            mainContent.style.transition = 'opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
     @yield('scripts')
 </body>
 </html>

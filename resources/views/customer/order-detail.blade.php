@@ -12,6 +12,32 @@
         <h1 class="text-3xl font-extrabold text-gray-dark tracking-tight mt-3">Detail Pesanan</h1>
     </div>
 
+    @if(strtolower(trim($order->status)) === 'dibatalkan')
+        <!-- Alert Penjelasan Pembatalan Pesanan -->
+        <div class="mb-6 p-5 rounded-2xl bg-red-50 border-2 border-red-400 text-red-900 shadow-soft">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 font-bold">
+                    <span class="material-symbols-rounded text-xl">cancel</span>
+                </div>
+                <div class="space-y-1.5 flex-grow">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <h4 class="font-black text-sm text-red-700 uppercase tracking-wider">Pesanan Dibatalkan</h4>
+                        <span class="text-[10px] font-extrabold bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full border border-red-300">
+                            Dibatalkan oleh: Administrator (Admin Toko)
+                        </span>
+                    </div>
+                    <div class="p-3 bg-white rounded-xl border border-red-200 mt-1">
+                        <p class="text-xs font-bold text-gray-800">Alasan Pembatalan Pesanan:</p>
+                        <p class="text-xs font-semibold text-red-600 mt-0.5">
+                            "{{ $order->cancel_reason ?? 'Dibatalkan oleh admin toko.' }}"
+                        </p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-1">Stok produk pesanan ini telah otomatis dikembalikan ke stok toko.</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Timeline Summary Card -->
     <div class="bg-white rounded-2xl shadow-soft border border-gray-light p-6 mb-6 hover:shadow-soft transition-all">
         <div class="flex flex-col sm:flex-row justify-between border-b border-bg-light pb-4 mb-4 gap-2">

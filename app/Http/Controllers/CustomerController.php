@@ -9,14 +9,38 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\StockHistory;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
+    /**
+     * Helper privat untuk mengecek status autentikasi akun pelanggan.
+     * Mendukung peran 'pelanggan', 'customer', maupun 'user'.
+     */
+    private function isCustomerLoggedIn()
+    {
+        if (Auth::check()) {
+            $userRole = strtolower(Auth::user()->role);
+            if (in_array($userRole, ['pelanggan', 'customer', 'user'])) {
+                if (!session()->has('role')) {
+                    session(['role' => 'pelanggan', 'username' => Auth::user()->name]);
+                }
+                return true;
+            }
+        }
+
+        if (session()->has('role') && in_array(strtolower(session('role')), ['pelanggan', 'customer', 'user'])) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function landingPage()
     {
-        // Display 8 products on the landing page
+        // Tampilkan 8 produk aktif di halaman landing
         $products = Product::where('status', 'aktif')->take(8)->get();
         return view('customer.landing', compact('products'));
     }
@@ -62,7 +86,7 @@ class CustomerController extends Controller
 
     public function home(Request $request)
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('home')]);
             return redirect()->route('login');
         }
@@ -84,10 +108,10 @@ class CustomerController extends Controller
 
         $products = $query->get();
 
-        // Newer products (last 4 created)
+        // Produk terbaru (4 produk)
         $newest = Product::where('status', 'aktif')->orderBy('created_at', 'desc')->take(4)->get();
         
-        // Bestsellers (mock or sort by rating/stock for demo since we don't have sold counts in DB table directly)
+        // Terlaris (4 produk)
         $bestsellers = Product::where('status', 'aktif')->orderBy('stock', 'asc')->take(4)->get();
 
         return view('customer.home', compact('products', 'newest', 'bestsellers', 'category', 'search'));
@@ -107,7 +131,7 @@ class CustomerController extends Controller
 
     public function cart()
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('cart')]);
             return redirect()->route('login');
         }
@@ -118,8 +142,7 @@ class CustomerController extends Controller
 
     public function addToCart(Request $request)
     {
-        // Enforce login for Add to Cart or Buy Now
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => url()->previous()]);
             return redirect()->route('login');
         }
@@ -168,7 +191,7 @@ class CustomerController extends Controller
 
     public function updateCart(Request $request)
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('cart')]);
             return redirect()->route('login');
         }
@@ -210,7 +233,7 @@ class CustomerController extends Controller
 
     public function removeFromCart($id)
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('cart')]);
             return redirect()->route('login');
         }
@@ -225,15 +248,13 @@ class CustomerController extends Controller
 
     public function checkout()
     {
-        // Enforce login for Checkout
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('checkout')]);
             return redirect()->route('login');
         }
 
         $cart = session('cart', []);
         if (empty($cart)) {
-            // Seed a mock item if empty for demo
             $p1 = Product::find(1) ?? Product::first();
             $p2 = Product::find(12) ?? Product::first();
             if ($p1 && $p2) {
@@ -245,7 +266,6 @@ class CustomerController extends Controller
             }
         }
 
-        // Check stock warnings for items in cart
         $hasStockWarning = false;
         foreach ($cart as $productId => $item) {
             $product = Product::find($productId);
@@ -264,25 +284,22 @@ class CustomerController extends Controller
 
     public function payment(Request $request)
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('payment')]);
             return redirect()->route('login');
         }
 
-        // Get shipping & payment info from checkout form parameters
         $shippingMethod = $request->query('shipping_method', 'Diantar');
         $shippingAddress = $request->query('shipping_address', 'Jl. Melati No. 12, Bandung');
         $notes = $request->query('notes', '');
         $payMethod = $request->query('pay_method', 'transfer');
         $paymentMethod = ($payMethod === 'qris') ? 'QRIS' : 'Transfer Bank';
 
-        // Create the actual Order and items in database, and deduct stock
         $cart = session('cart', []);
         if (empty($cart)) {
             return redirect()->route('home');
         }
 
-        // Validate stock for all items before proceeding to payment
         foreach ($cart as $productId => $item) {
             $product = Product::find($productId);
             if (!$product || $product->stock <= 0) {
@@ -302,13 +319,12 @@ class CustomerController extends Controller
         $total = $subtotal + $shippingCost;
         $invoiceNo = 'SB-' . date('ymd') . '-' . sprintf('%03d', rand(1, 999));
 
-        // Enforce stock decrease rule
         \DB::beginTransaction();
         try {
-            $userId = \App\Models\User::where('role', 'pelanggan')->first()->id ?? 2;
+            $userId = Auth::id() ?? session('user_id') ?? User::whereIn('role', ['pelanggan', 'customer', 'user'])->first()->id ?? 2;
 
             $order = Order::create([
-                'user_id' => Auth::id(),
+                'user_id' => $userId,
                 'invoice_no' => $invoiceNo,
                 'shipping_address' => $shippingAddress,
                 'shipping_method' => $shippingMethod,
@@ -319,7 +335,6 @@ class CustomerController extends Controller
                 'notes' => $notes
             ]);
 
-            // Save payment method in payments table
             Payment::create([
                 'order_id' => $order->id,
                 'method' => $paymentMethod,
@@ -334,13 +349,10 @@ class CustomerController extends Controller
                     'price' => $item['price']
                 ]);
 
-                // Deduct stock
                 $product = Product::findOrFail($productId);
                 $product->stock = max(0, $product->stock - $item['qty']);
                 $product->save();
 
-                // Create stock history log
-                // "Setiap perubahan stok wajib tercatat pada tabel Riwayat Stok."
                 StockHistory::create([
                     'product_id' => $product->id,
                     'reference_id' => $order->id,
@@ -350,16 +362,13 @@ class CustomerController extends Controller
                 ]);
             }
 
-            // Save order ID to session for payment page
             session(['last_order_id' => $order->id]);
-
             \DB::commit();
         } catch (\Exception $e) {
             \DB::rollBack();
             return redirect()->back()->withErrors('Gagal memproses pesanan: ' . $e->getMessage());
         }
 
-        // Clear cart
         session()->forget('cart');
 
         return view('customer.payment', compact('order'));
@@ -367,7 +376,7 @@ class CustomerController extends Controller
 
     public function submitPayment(Request $request)
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             return redirect()->route('login');
         }
 
@@ -381,13 +390,11 @@ class CustomerController extends Controller
         $orderId = $request->input('order_id');
         $order = Order::findOrFail($orderId);
 
-        // Update order status to Menunggu Verifikasi
         $order->status = 'Menunggu Verifikasi';
         $order->save();
 
         $proofPath = $request->file('proof_file')->store('payments', 'public');
 
-        // Update Payment entry with proof
         $payment = Payment::where('order_id', $order->id)->first();
         if ($payment) {
             $payment->update([
@@ -426,12 +433,12 @@ class CustomerController extends Controller
 
     public function history()
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('history')]);
             return redirect()->route('login');
         }
 
-        $userId = Auth::id();
+        $userId = Auth::id() ?? session('user_id');
 
         $orders = Order::with(['orderItems.product', 'payment'])
             ->where('user_id', $userId)
@@ -444,6 +451,7 @@ class CustomerController extends Controller
                     'date' => $o->created_at->format('d M Y H:i'),
                     'total' => $o->total,
                     'status' => $o->status,
+                    'cancel_reason' => $o->cancel_reason,
                     'items' => $o->orderItems->map(function($it) {
                         return [
                             'name' => $it->product->name ?? 'Produk',
@@ -467,8 +475,7 @@ class CustomerController extends Controller
 
     public function profile()
     {
-        // Enforce login for profile page
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('profile')]);
             return redirect()->route('login');
         }
@@ -478,7 +485,7 @@ class CustomerController extends Controller
 
     public function editProfile()
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('profile.edit')]);
             return redirect()->route('login');
         }
@@ -519,7 +526,7 @@ class CustomerController extends Controller
 
     public function changePassword()
     {
-        if (session('role') !== 'pelanggan') {
+        if (!$this->isCustomerLoggedIn()) {
             session(['url.intended' => route('profile.change-password')]);
             return redirect()->route('login');
         }

@@ -55,14 +55,31 @@
             <p class="text-3xl font-black text-accent tracking-tight mt-1" x-text="formattedTime"></p>
         </div>
 
-        <!-- Order Cancelled Banner -->
+        <!-- Order Cancelled Banner dengan Penjelasan Lengkap (Alasan & Pembatal oleh Admin) -->
         <div x-show="currentStatus === 'Dibatalkan'" 
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 -translate-y-2"
-             class="bg-red-50 border-2 border-red-500 rounded-xl p-5 text-center flex flex-col items-center">
-            <span class="material-symbols-rounded text-red-500 text-3xl mb-1.5">cancel</span>
-            <p class="text-sm font-bold text-red-500 uppercase tracking-wider">Pesanan Dibatalkan</p>
-            <p class="text-xs text-gray-muted leading-relaxed mt-1">Pembayaran melewati batas waktu 15 menit. Stok produk otomatis dikembalikan ke gudang.</p>
+             class="bg-red-50 border-2 border-red-400 rounded-2xl p-6 text-left flex flex-col sm:flex-row items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 font-bold shadow-xs">
+                <span class="material-symbols-rounded text-2xl">cancel</span>
+            </div>
+            <div class="space-y-2 flex-grow">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <h3 class="text-sm font-black text-red-700 uppercase tracking-wider">Pesanan Dibatalkan</h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 text-red-800 border border-red-300">
+                        Dibatalkan oleh: Administrator (Admin Toko)
+                    </span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-red-200">
+                    <p class="text-xs font-bold text-gray-800">Alasan Pembatalan:</p>
+                    <p class="text-xs font-semibold text-red-600 mt-0.5">
+                        "{{ $order->cancel_reason ?? 'Pesanan dibatalkan oleh admin toko.' }}"
+                    </p>
+                </div>
+                <p class="text-[11px] text-gray-500 leading-relaxed">
+                    Stok produk pesanan ini telah otomatis dikembalikan ke gudang. Silakan lakukan pemesanan ulang atau hubungi admin jika membutuhkan bantuan.
+                </p>
+            </div>
         </div>
 
         <!-- Vertical/Horizontal Timeline -->
