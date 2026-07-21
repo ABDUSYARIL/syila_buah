@@ -99,7 +99,7 @@
                         </div>
                         <div>
                             <p class="text-xs text-gray-muted font-semibold">Alamat Lengkap</p>
-                            <p class="text-sm font-semibold text-gray-dark mt-0.5">Jl. Melati No. 12, Cicendo, Kota Bandung, Jawa Barat</p>
+                            <p class="text-sm font-semibold text-gray-dark mt-0.5">Jl. Danau Sentarum, Sungai Bangkong, Kec. Pontianak Kota, Kota Pontianak, Kalimantan Barat</p>
                         </div>
                     </div>
                     
