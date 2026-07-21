@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\StockEntry;
 use App\Models\StockAdjustment;
 use App\Models\StockHistory;
+use App\Models\Supplier;
 use App\Http\Controllers\ProductData;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -124,8 +125,9 @@ class AdminController extends Controller
             StockHistory::where('created_at', '<', now()->subDays($retentionDays))->delete();
         }
 
-        // Mengambil data semua produk untuk keperluan dropdown formulir input stok
+        // Mengambil data semua produk & pemasok untuk keperluan dropdown/input formulir stok
         $products = Product::all();
+        $suppliers = Supplier::all();
 
         // ── TAB 1: LOG STOK MASUK ──
         // Menampilkan semua log dengan kuantitas positif (stok masuk / bertambah)
@@ -149,20 +151,29 @@ class AdminController extends Controller
         $activeTab = request()->query('tab', 'masuk');
 
         // Mengirim data ke view halaman Manajemen Stok
-        return view('admin.stock', compact('products', 'stockMasuk', 'stockKeluar', 'stockSaatIni', 'activeTab', 'retentionDays'));
+        return view('admin.stock', compact('products', 'suppliers', 'stockMasuk', 'stockKeluar', 'stockSaatIni', 'activeTab', 'retentionDays'));
     }
 
     public function addStock(Request $request)
     {
         $productId = $request->input('product_id');
-        $qty = $request->input('qty');
+        $qty = (int) $request->input('qty');
+        $supplierName = trim($request->input('supplier', ''));
         $purchasePrice = $request->input('purchase_price');
         $notes = $request->input('notes');
 
-        // Create StockEntry
+        // Cari atau buat Pemasok (Supplier) baru berdasarkan input nama pemasok dari formulir
+        $supplier = null;
+        if (!empty($supplierName)) {
+            $supplier = Supplier::firstOrCreate(['name' => $supplierName]);
+        } else {
+            $supplier = Supplier::first() ?? Supplier::create(['name' => 'Default']);
+        }
+
+        // Create StockEntry dengan ID Pemasok yang sesuai
         $entry = StockEntry::create([
             'product_id' => $productId,
-            'supplier_id' => 1, // default supplier seeded
+            'supplier_id' => $supplier->id,
             'qty' => $qty,
             'purchase_price' => $purchasePrice,
             'notes' => $notes
@@ -182,7 +193,7 @@ class AdminController extends Controller
             'transaction_type' => 'Stok Masuk'
         ]);
 
-        return redirect()->back()->with('success', 'Stok masuk berhasil disimpan!');
+        return redirect()->back()->with('success', 'Stok masuk berhasil disimpan (Pemasok: ' . $supplier->name . ')!');
     }
 
     public function adjustStock(Request $request)

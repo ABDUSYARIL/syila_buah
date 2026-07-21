@@ -63,7 +63,14 @@
                         <label class="text-xs font-bold text-gray-dark">Pemasok (Supplier)</label>
                         <div class="relative group">
                             <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-gray-muted text-lg transition-colors group-focus-within:text-primary">group</span>
-                            <input type="text" name="supplier" required placeholder="Contoh: Tani Makmur" class="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-light bg-white text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all" />
+                            <input type="text" name="supplier" list="suppliers-list" required placeholder="Contoh: Tani Makmur" class="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-light bg-white text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all" />
+                            <datalist id="suppliers-list">
+                                @if(isset($suppliers))
+                                    @foreach($suppliers as $sup)
+                                        <option value="{{ $sup->name }}"></option>
+                                    @endforeach
+                                @endif
+                            </datalist>
                         </div>
                     </div>
                     <div class="flex flex-col gap-1.5">
