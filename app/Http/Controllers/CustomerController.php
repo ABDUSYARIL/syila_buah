@@ -125,11 +125,24 @@ class CustomerController extends Controller
         }
 
         $productId = (int) $request->input('product_id');
-        $qty = (int) $request->input('qty', 1);
+        $qty = max(1, (int) $request->input('qty', 1));
+
+        $product = Product::findOrFail($productId);
+
+        if ($product->stock <= 0) {
+            return redirect()->back()->with('error', 'Stok produk ' . $product->name . ' sedang habis dan tidak dapat dipesan.');
+        }
 
         $cart = session('cart', []);
-        
-        $product = Product::findOrFail($productId);
+
+        $currentQtyInCart = isset($cart[$productId]) ? $cart[$productId]['qty'] : 0;
+        if (($currentQtyInCart + $qty) > $product->stock) {
+            $maxCanAdd = max(0, $product->stock - $currentQtyInCart);
+            if ($maxCanAdd <= 0) {
+                return redirect()->back()->with('error', 'Stok yang dapat dipesan untuk ' . $product->name . ' sudah mencapai batas maksimal stok (' . $product->stock . ' ' . $product->unit . ').');
+            }
+            $qty = $maxCanAdd;
+        }
 
         if (isset($cart[$productId])) {
             $cart[$productId]['qty'] += $qty;

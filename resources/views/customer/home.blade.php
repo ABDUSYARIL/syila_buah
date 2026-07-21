@@ -55,32 +55,56 @@
             @else
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                     @foreach($products as $p)
-                        <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
-                            <a href="{{ route('product.detail', $p['id']) }}" class="block">
-                                <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
-                                    <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
-                                    <div class="absolute top-2 left-2">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
-                                            Stok: {{ $p->stock }} {{ $p->unit }}
-                                        </span>
+                        @php $isOutOfStock = ($p['stock'] <= 0); @endphp
+                        <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl {{ $isOutOfStock ? 'opacity-80 bg-gray-50/50' : '' }}">
+                            @if($isOutOfStock)
+                                <div class="block cursor-not-allowed select-none">
+                                    <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
+                                        <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain filter grayscale opacity-50" />
+                                        <div class="absolute top-2 left-2">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm">
+                                                Stok Habis
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </a>
+                            @else
+                                <a href="{{ route('product.detail', $p['id']) }}" class="block">
+                                    <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
+                                        <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
+                                        <div class="absolute top-2 left-2">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
+                                                Stok: {{ $p->stock }} {{ $p->unit }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </a>
+                            @endif
                             <div class="p-4 flex-grow flex flex-col justify-between">
                                 <div>
                                     <p class="text-xs text-gray-muted font-medium uppercase tracking-wider mb-1">{{ $p->category->name ?? 'Buah' }}</p>
-                                    <a href="{{ route('product.detail', $p['id']) }}" class="hover:text-primary transition-colors">
-                                        <h3 class="font-bold text-gray-dark text-sm leading-tight mb-2 h-10 overflow-hidden">{{ $p['name'] }}</h3>
-                                    </a>
+                                    @if($isOutOfStock)
+                                        <h3 class="font-bold text-gray-400 text-sm leading-tight mb-2 h-10 overflow-hidden cursor-not-allowed select-none">{{ $p['name'] }}</h3>
+                                    @else
+                                        <a href="{{ route('product.detail', $p['id']) }}" class="hover:text-primary transition-colors">
+                                            <h3 class="font-bold text-gray-dark text-sm leading-tight mb-2 h-10 overflow-hidden">{{ $p['name'] }}</h3>
+                                        </a>
+                                    @endif
                                 </div>
                                 <div class="flex items-center justify-between border-t border-bg-light pt-3">
                                     <div>
-                                        <p class="font-extrabold text-primary text-sm leading-none">{{ \App\Http\Controllers\ProductData::rp($p['price']) }}</p>
+                                        <p class="font-extrabold {{ $isOutOfStock ? 'text-gray-400' : 'text-primary' }} text-sm leading-none">{{ \App\Http\Controllers\ProductData::rp($p['price']) }}</p>
                                         <p class="text-[10px] text-gray-muted mt-0.5">/ {{ $p['unit'] }}</p>
                                     </div>
-                                    <a href="{{ route('product.detail', $p['id']) }}" class="inline-flex items-center justify-center rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3 py-2 text-xs transition-colors duration-300 font-semibold">
-                                        Detail
-                                    </a>
+                                    @if($isOutOfStock)
+                                        <button type="button" disabled class="inline-flex items-center justify-center rounded-xl bg-gray-200 text-gray-400 px-3 py-2 text-xs font-semibold cursor-not-allowed select-none border border-gray-300">
+                                            Stok Habis
+                                        </button>
+                                    @else
+                                        <a href="{{ route('product.detail', $p['id']) }}" class="inline-flex items-center justify-center rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3 py-2 text-xs transition-colors duration-300 font-semibold">
+                                            Detail
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -101,32 +125,56 @@
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 @foreach ($bestsellers as $p)
-                    <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
-                        <a href="{{ route('product.detail', $p['id']) }}" class="block">
-                            <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
-                                <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
-                                <div class="absolute top-2 left-2">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
-                                        Stok: {{ $p->stock }} {{ $p->unit }}
-                                    </span>
+                    @php $isOutOfStock = ($p['stock'] <= 0); @endphp
+                    <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl {{ $isOutOfStock ? 'opacity-80 bg-gray-50/50' : '' }}">
+                        @if($isOutOfStock)
+                            <div class="block cursor-not-allowed select-none">
+                                <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
+                                    <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain filter grayscale opacity-50" />
+                                    <div class="absolute top-2 left-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm">
+                                            Stok Habis
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </a>
+                        @else
+                            <a href="{{ route('product.detail', $p['id']) }}" class="block">
+                                <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
+                                    <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
+                                    <div class="absolute top-2 left-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
+                                            Stok: {{ $p->stock }} {{ $p->unit }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </a>
+                        @endif
                         <div class="p-4 flex-grow flex flex-col justify-between">
                             <div>
                                 <p class="text-xs text-gray-muted font-medium uppercase tracking-wider mb-1">{{ $p->category->name ?? 'Buah' }}</p>
-                                <a href="{{ route('product.detail', $p['id']) }}" class="hover:text-primary transition-colors">
-                                    <h3 class="font-bold text-gray-dark text-sm leading-tight mb-2 h-10 overflow-hidden">{{ $p['name'] }}</h3>
-                                </a>
+                                @if($isOutOfStock)
+                                    <h3 class="font-bold text-gray-400 text-sm leading-tight mb-2 h-10 overflow-hidden cursor-not-allowed select-none">{{ $p['name'] }}</h3>
+                                @else
+                                    <a href="{{ route('product.detail', $p['id']) }}" class="hover:text-primary transition-colors">
+                                        <h3 class="font-bold text-gray-dark text-sm leading-tight mb-2 h-10 overflow-hidden">{{ $p['name'] }}</h3>
+                                    </a>
+                                @endif
                             </div>
                             <div class="flex items-center justify-between border-t border-bg-light pt-3">
                                 <div>
-                                    <p class="font-extrabold text-primary text-sm leading-none">{{ \App\Http\Controllers\ProductData::rp($p['price']) }}</p>
+                                    <p class="font-extrabold {{ $isOutOfStock ? 'text-gray-400' : 'text-primary' }} text-sm leading-none">{{ \App\Http\Controllers\ProductData::rp($p['price']) }}</p>
                                     <p class="text-[10px] text-gray-muted mt-0.5">/ {{ $p['unit'] }}</p>
                                 </div>
-                                <a href="{{ route('product.detail', $p['id']) }}" class="inline-flex items-center justify-center rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3 py-2 text-xs transition-colors duration-300 font-semibold">
-                                    Detail
-                                </a>
+                                @if($isOutOfStock)
+                                    <button type="button" disabled class="inline-flex items-center justify-center rounded-xl bg-gray-200 text-gray-400 px-3 py-2 text-xs font-semibold cursor-not-allowed select-none border border-gray-300">
+                                        Stok Habis
+                                    </button>
+                                @else
+                                    <a href="{{ route('product.detail', $p['id']) }}" class="inline-flex items-center justify-center rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3 py-2 text-xs transition-colors duration-300 font-semibold">
+                                        Detail
+                                    </a>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -144,32 +192,56 @@
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 @foreach ($newest as $p)
-                    <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl">
-                        <a href="{{ route('product.detail', $p['id']) }}" class="block">
-                            <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
-                                <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
-                                <div class="absolute top-2 left-2">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
-                                        Stok: {{ $p->stock }} {{ $p->unit }}
-                                    </span>
+                    @php $isOutOfStock = ($p['stock'] <= 0); @endphp
+                    <div class="card-3d overflow-hidden group flex flex-col justify-between rounded-2xl {{ $isOutOfStock ? 'opacity-80 bg-gray-50/50' : '' }}">
+                        @if($isOutOfStock)
+                            <div class="block cursor-not-allowed select-none">
+                                <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
+                                    <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain filter grayscale opacity-50" />
+                                    <div class="absolute top-2 left-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm">
+                                            Stok Habis
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </a>
+                        @else
+                            <a href="{{ route('product.detail', $p['id']) }}" class="block">
+                                <div class="relative bg-white aspect-square p-4 flex items-center justify-center border-b border-bg-light">
+                                    <img src="{{ \App\Http\Controllers\ProductData::img($p['img'], 400, 400) }}" alt="{{ $p['name'] }}" class="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
+                                    <div class="absolute top-2 left-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold bg-green-light text-primary border border-primary/10 shadow-sm">
+                                            Stok: {{ $p->stock }} {{ $p->unit }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </a>
+                        @endif
                         <div class="p-4 flex-grow flex flex-col justify-between">
                             <div>
                                 <p class="text-xs text-gray-muted font-medium uppercase tracking-wider mb-1">{{ $p->category->name ?? 'Buah' }}</p>
-                                <a href="{{ route('product.detail', $p['id']) }}" class="hover:text-primary transition-colors">
-                                    <h3 class="font-bold text-gray-dark text-sm leading-tight mb-2 h-10 overflow-hidden">{{ $p['name'] }}</h3>
-                                </a>
+                                @if($isOutOfStock)
+                                    <h3 class="font-bold text-gray-400 text-sm leading-tight mb-2 h-10 overflow-hidden cursor-not-allowed select-none">{{ $p['name'] }}</h3>
+                                @else
+                                    <a href="{{ route('product.detail', $p['id']) }}" class="hover:text-primary transition-colors">
+                                        <h3 class="font-bold text-gray-dark text-sm leading-tight mb-2 h-10 overflow-hidden">{{ $p['name'] }}</h3>
+                                    </a>
+                                @endif
                             </div>
                             <div class="flex items-center justify-between border-t border-bg-light pt-3">
                                 <div>
-                                    <p class="font-extrabold text-primary text-sm leading-none">{{ \App\Http\Controllers\ProductData::rp($p['price']) }}</p>
+                                    <p class="font-extrabold {{ $isOutOfStock ? 'text-gray-400' : 'text-primary' }} text-sm leading-none">{{ \App\Http\Controllers\ProductData::rp($p['price']) }}</p>
                                     <p class="text-[10px] text-gray-muted mt-0.5">/ {{ $p['unit'] }}</p>
                                 </div>
-                                <a href="{{ route('product.detail', $p['id']) }}" class="inline-flex items-center justify-center rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3 py-2 text-xs transition-colors duration-300 font-semibold">
-                                    Detail
-                                </a>
+                                @if($isOutOfStock)
+                                    <button type="button" disabled class="inline-flex items-center justify-center rounded-xl bg-gray-200 text-gray-400 px-3 py-2 text-xs font-semibold cursor-not-allowed select-none border border-gray-300">
+                                        Stok Habis
+                                    </button>
+                                @else
+                                    <a href="{{ route('product.detail', $p['id']) }}" class="inline-flex items-center justify-center rounded-xl bg-green-light text-primary hover:bg-primary hover:text-white px-3 py-2 text-xs transition-colors duration-300 font-semibold">
+                                        Detail
+                                    </a>
+                                @endif
                             </div>
                         </div>
                     </div>
