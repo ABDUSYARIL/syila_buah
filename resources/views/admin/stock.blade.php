@@ -46,9 +46,12 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-bold text-gray-dark">Pilih Produk</label>
-                        <select name="product_id" required class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer">
+                        <select name="product_id" required class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer">
+                            <option value="" disabled {{ !request()->query('product_id') ? 'selected' : '' }}>-- Pilih Produk Buah --</option>
                             @foreach($products as $p)
-                                <option value="{{ $p['id'] }}">{{ $p['name'] }} (Sisa: {{ $p['stock'] }} {{ $p['unit'] }})</option>
+                                <option value="{{ $p['id'] }}" {{ request()->query('product_id') == $p['id'] ? 'selected' : '' }}>
+                                    {{ $p['name'] }} (Sisa: {{ $p['stock'] }} {{ $p['unit'] }})
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -101,9 +104,12 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-bold text-gray-dark">Pilih Produk</label>
-                        <select name="product_id" required class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer">
+                        <select name="product_id" required class="w-full rounded-xl border border-gray-light bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer">
+                            <option value="" disabled {{ !request()->query('product_id') ? 'selected' : '' }}>-- Pilih Produk Buah --</option>
                             @foreach($products as $p)
-                                <option value="{{ $p['id'] }}">{{ $p['name'] }} (Sisa: {{ $p['stock'] }} {{ $p['unit'] }})</option>
+                                <option value="{{ $p['id'] }}" {{ request()->query('product_id') == $p['id'] ? 'selected' : '' }}>
+                                    {{ $p['name'] }} (Sisa: {{ $p['stock'] }} {{ $p['unit'] }})
+                                </option>
                             @endforeach
                         </select>
                     </div>

@@ -126,7 +126,7 @@ class AdminController extends Controller
         }
 
         // Mengambil data semua produk & pemasok untuk keperluan dropdown/input formulir stok
-        $products = Product::all();
+        $products = Product::orderBy('name', 'asc')->get();
         $suppliers = Supplier::all();
 
         // ── TAB 1: LOG STOK MASUK ──
